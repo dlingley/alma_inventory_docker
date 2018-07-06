@@ -1,10 +1,10 @@
 # alma_inventory_docker
 Alma Inventory API setup which can be launched using docker on Mac or Linux.  Issue with Windows 10 and docker and mapped drives prevent it from working currently on Windows 10.
 
-1:
+1.
 Clone Repo
 
-2:
+2.
 Add Alma key with Prod read-only access to Bibs and Configuration: https://www.screencast.com/t/x2RK4R5JaMwh
 
 3.
