@@ -70,16 +70,7 @@ require("key.php");
       //call reformed on your form
       $('#ShelfLister').reformed().validate();
   });
-//Code to show loader image
-$(document).ready(function() {
-//hide on start
- $('#loading').hide();
 
- $('#ShelfLister').submit(function() {
-    startProgress(pg);
-     $("#loading").show();
-     return true;
- });
 
 });
 
@@ -149,68 +140,13 @@ $(document).ready(function() {
     }
     <!-- end location lookup Ajax js -->
 </script>
-<!-- Start progress Ajax js -->
-<script type="text/javascript">
-    var progress = 0;
-    var job = "";
 
-    function startProgress(barName){
-                console.log("PG Process Started");
-                progressLoop(barName);
-            }
-
-            function progressLoop(barName){
-                console.log("Progress Called");
-                $.ajax({
-                    url: "getProgress.php",
-                    cache: false,
-                    dataType: "JSON",
-                    success: function(data){
-                        console.log(data);
-                        obj = JSON.parse(data);
-                        console.log(obj.job);
-                        console.log(obj.percentage);
-                        var pBar = document.getElementById('pg');
-                        //console.log("pSUCCESS: " . obj.percentage);
-                        pBar.value = obj.percentage;
-                        $('.progress-value').html(obj.job + ': ' + obj.percentage + '%');
-                        if (obj.percentage < 100 || obj.job != "complete" ){
-                            setTimeout(progressLoop(barName), (1000*2));
-                        }
-                    },
-                    error: function(xhr,status,err){
-                        console.log("pERROR: " + err);
-                        //alert("PROGRESS ERROR");
-                    }
-                });
-            }
-
-</script>
-<!-- End progress Ajax js -->
   <!-- The following style code is NOT necessary; just some styling to center the form on the page and set the default font size -->
   <style type="text/css">
   	body { font: 12px/14px Arial;}
   	div.reformed-form { width: 550px; margin: 5px auto;}
 
-  #loading {
-  width: 100%;
-  height: 100%;
-  top: 0px;
-  left: 0px;
-  position: fixed;
-  display: block;
-  opacity: 0.9;
-  background-color: #fff;
-  z-index: 99;
-  text-align: center;
-}
 
-#loading-image {
-  position: absolute;
-  top: 25%;
-  left: 25%;
-  z-index: 100;
-}
 
 import url(http://fonts.googleapis.com/css?family=Expletus+Sans);
 
@@ -245,188 +181,12 @@ h2 {
 
 	padding: 0 0 .25em;
 }
-
-/* Styling an indeterminate progress bar */
-
-progress:not(value) {
-	/* Add your styles here. As part of this walkthrough we will focus only on determinate progress bars. */
-}
-
-/* Styling the determinate progress element */
-
-progress[value] {
-	/* Get rid of the default appearance */
-	appearance: none;
-
-	/* This unfortunately leaves a trail of border behind in Firefox and Opera. We can remove that by setting the border to none. */
-	border: none;
-
-	/* Add dimensions */
-	width: 50%; height: 20px;
-
-	/* Although firefox doesn't provide any additional pseudo class to style the progress element container, any style applied here works on the container. */
-	  background-color: whiteSmoke;
-	  border-radius: 3px;
-	  box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
-
-	/* Of all IE, only IE10 supports progress element that too partially. It only allows to change the background-color of the progress value using the 'color' attribute. */
-	color: royalblue;
-
-  position: fixed;
-  top: 40%;
-  left: 25%;
-	margin: 0 0 1.5em;
-}
-
-/*
-Webkit browsers provide two pseudo classes that can be use to style HTML5 progress element.
--webkit-progress-bar -> To style the progress element container
--webkit-progress-value -> To style the progress element value.
-*/
-
-progress[value]::-webkit-progress-bar {
-	background-color: whiteSmoke;
-	border-radius: 3px;
-	box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
-}
-
-progress[value]::-webkit-progress-value {
-	position: relative;
-
-	background-size: 35px 20px, 100% 100%, 100% 100%;
-	border-radius:3px;
-
-	/* Let's animate this */
-	animation: animate-stripes 5s linear infinite;
-}
-
-@keyframes animate-stripes { 100% { background-position: -100px 0; } }
-
-/* Let's spice up things little bit by using pseudo elements. */
-
-progress[value]::-webkit-progress-value:after {
-	/* Only webkit/blink browsers understand pseudo elements on pseudo classes. A rare phenomenon! */
-	content: '';
-	position: absolute;
-
-	width:5px; height:5px;
-	top:7px; right:7px;
-
-	background-color: white;
-	border-radius: 100%;
-}
-
-/* Firefox provides a single pseudo class to style the progress element value and not for container. -moz-progress-bar */
-
-progress[value]::-moz-progress-bar {
-	/* Gradient background with Stripes */
-	background-image:
-	-moz-linear-gradient( 135deg,
-													 transparent,
-													 transparent 33%,
-													 rgba(0,0,0,.1) 33%,
-													 rgba(0,0,0,.1) 66%,
-													 transparent 66%),
-    -moz-linear-gradient( top,
-														rgba(255, 255, 255, .25),
-														rgba(0,0,0,.2)),
-     -moz-linear-gradient( left, #09c, #f44);
-
-	background-size: 35px 20px, 100% 100%, 100% 100%;
-	border-radius:3px;
-
-	/* Firefox doesn't support CSS3 keyframe animations on progress element. Hence, we did not include animate-stripes in this code block */
-}
-
-/* Fallback technique styles */
-.progress-bar {
-  position: fixed;
-  top: 25%;
-  left: 25%;
-	background-color: whiteSmoke;
-	border-radius: 3px;
-	box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
-
-	/* Dimensions should be similar to the parent progress element. */
-	width: 75%; height:20px;
-}
-
-.progress-bar span {
-	background-color: royalblue;
-	border-radius: 3px;
-
-	display: block;
-	text-indent: -9999px;
-}
-
-p[data-value] {
-
-  position: relative;
-}
-
-/* The percentage will automatically fall in place as soon as we make the width fluid. Now making widths fluid. */
-
-p[data-value]:after {
-	content: attr(data-value) '%';
-	position: absolute; right:0;
-}
-
-.html5::-webkit-progress-value,
-.python::-webkit-progress-value  {
-	/* Gradient background with Stripes */
-	background-image:
-	-webkit-linear-gradient( 135deg,
-													 transparent,
-													 transparent 33%,
-													 rgba(0,0,0,.1) 33%,
-													 rgba(0,0,0,.1) 66%,
-													 transparent 66%),
-    -webkit-linear-gradient( top,
-														rgba(255, 255, 255, .25),
-														rgba(0,0,0,.2)),
-     -webkit-linear-gradient( left, #09c, #f44);
-}
-
-/* Similarly, for Mozillaa. Unfortunately combining the styles for different browsers will break every other browser. Hence, we need a separate block. */
-
-.html5::-moz-progress-bar,
-.php::-moz-progress-bar {
-	/* Gradient background with Stripes */
-	background-image:
-	-moz-linear-gradient( 135deg,
-													 transparent,
-													 transparent 33%,
-													 rgba(0,0,0,.1) 33%,
-													 rgba(0,0,0,.1) 66%,
-													 transparent 66%),
-    -moz-linear-gradient( top,
-														rgba(255, 255, 255, .25),
-														rgba(0,0,0,.2)),
-     -moz-linear-gradient( left, #09c, #f44);
-}
-.progress-value {
-    padding: 0px 5px;
-    line-height: 20px;
-    margin-left: 5px;
-    color: black;
-    height: 18px;
-    position: fixed;
-    top: 38%;
-    left: 40%;
-}
   </style>
 
 
   </head>
   <body>
 
-<div id="loading">
-
-<progress id="pg" max="100" value="0" class="html5"/></progress>
-
-  <span class="progress-value">0%</span>
-  <!--<img id="loading-image" src="images/ajax_loader_blue_512.gif" alt="Loading..." />-->
-</div>
     <div class="reformed-form">
       <h1>Inventory Report <small>Fill in form and submit</small></h1>
     	<form method="post" name="ShelfLister" id="ShelfLister" action="<?php echo 'http://' . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF']) . 'process_barcodes.php'; ?>" enctype="multipart/form-data">
