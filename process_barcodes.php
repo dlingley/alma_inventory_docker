@@ -41,6 +41,7 @@
   </div>
 
 <?php
+ini_set('max_execution_time', 0);
 //session_start();
 //pre($_POST);
 //Include XLSX Reader
