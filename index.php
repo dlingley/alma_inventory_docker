@@ -71,9 +71,6 @@ require("key.php");
       $('#ShelfLister').reformed().validate();
   });
 
-
-});
-
   </script>
   <!-- end necessary reformed js -->
     <!-- start lookup Ajax js -->
