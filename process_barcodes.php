@@ -28,17 +28,20 @@
     </style>
 </head>
 <body>
-  <div class="container">
-     <div class="row">
-        <div class="col-md-12">
-        <p>&nbsp;</p>
-        <p>&nbsp;</p>
-        <div id="progress-bar" style="border:1px solid #ccc; border-radius: 5px; "></div>
-        <!-- Progress information -->
-        <br>
-        <div id="information" ></div>
+<div class="container">
+  <div id="progress-section">  
+      <div class="container">
+         <div class="row">
+            <div class="col-md-12">
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <div id="progress-bar" style="border:1px solid #ccc; border-radius: 5px; "></div>
+            <!-- Progress information -->
+            <br>
+            <div id="information" ></div>
+        </div>
+      </div>
     </div>
-  </div>
 
 <?php
 ini_set('max_execution_time', 0);
@@ -181,8 +184,15 @@ if (isset($_POST['submit'])) {
 
 
                 }
-                else {
+                else {  
                   //Barcode was found so we can store a normalized call number to use for sorting
+                  
+                  //Need to remove "DVD " prefix prior to sorting if DVD
+                  if (isset($_POST['itemType']) && $_POST['itemType'] == 'DVD') {  
+                    // Remove any inital "DVD " prior to sorting
+                    $itemData->call_number = preg_replace("/^DVD\s*/", "", $itemData->call_number);
+                  }
+
                   //if call_number_type == 1 it should be dewey
                   if($itemData->call_number_type == 1)
                   {
@@ -221,8 +231,8 @@ if (isset($_POST['submit'])) {
      session_write_close();*/
         }
         echo '<script>
-        parent.document.getElementById("progress-bar").innerHTML="<div style=\"display:none;</div>";
-        parent.document.getElementById("information").innerHTML="<div style=\"text-align:center; font-weight:bold\">Process completed</div>"</script>';
+        parent.document.getElementById("progress-section").innerHTML="<div style=\"display:none;</div>";
+        </script>';
         //session_destroy(); 
 
         //pre($unsorted);
