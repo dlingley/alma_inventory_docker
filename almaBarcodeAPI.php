@@ -34,8 +34,15 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
              }
              //$cache_expired = true;
              if (!$cache_expired) {
-                 $xml_barcode_result = simplexml_load_file("cache/barcodes/" . $barcode . ".xml");
-                 if (isset($_GET['debug'])) print("loaded data from cache file: cache/barcodes/" . $barcode . ".xml<br>\n");
+                $xml = file_get_contents("cache/barcodes/" . $barcode . ".xml");
+                    if (trim($xml) == '') {
+                            //barcode file empty, reload from api
+                            $xml_barcode_result = false;
+                    }
+                    else {
+                        $xml_barcode_result = simplexml_load_string($xml);
+                        if (isset($_GET['debug'])) print("loaded data from cache file: cache/barcodes/" . $barcode . ".xml<br>\n");
+                    }
              }
              else {
                $xml_barcode_result = false;
