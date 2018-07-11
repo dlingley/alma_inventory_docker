@@ -16,3 +16,5 @@ Run "docker-compose up" in project home directory
 
 5.
 Navigate to localhost:8080 in your browser and you should be able to see your list of libraries in the drop down list.
+
+The docker config for this was base off of these instructions: https://bitpress.io/simple-approach-using-docker-with-php/
