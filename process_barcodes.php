@@ -28,9 +28,24 @@
     </style>
 </head>
 <body>
-  <div class="container">
+<div class="container">
+  <div id="progress-section">  
+      <div class="container">
+         <div class="row">
+            <div class="col-md-12">
+            <p>&nbsp;</p>
+            <p>&nbsp;</p>
+            <div id="progress-bar" style="border:1px solid #ccc; border-radius: 5px; "></div>
+            <!-- Progress information -->
+            <br>
+            <div id="information" ></div>
+        </div>
+      </div>
+    </div>
 
 <?php
+ini_set('max_execution_time', 0);
+//session_start();
 //pre($_POST);
 //Include XLSX Reader
 include 'simplexlsx/simplexlsx.class.php';
@@ -119,7 +134,7 @@ if (isset($_POST['submit'])) {
         $row=1;
         foreach( $xlsx->rows() as $k => $r ) {
           // Start the session when using it. Not before or out of the loop. Remember that you are only using it to store the % of progress.
-           session_start();
+           //session_start();
             //Skip First row
             if ($k == 0) {
               //Check that first cell is header "barcodes"
@@ -169,8 +184,15 @@ if (isset($_POST['submit'])) {
 
 
                 }
-                else {
+                else {  
                   //Barcode was found so we can store a normalized call number to use for sorting
+                  
+                  //Need to remove "DVD " prefix prior to sorting if DVD
+                  if (isset($_POST['itemType']) && $_POST['itemType'] == 'DVD') {  
+                    // Remove any inital "DVD " prior to sorting
+                    $itemData->call_number = preg_replace("/^DVD\s*/", "", $itemData->call_number);
+                  }
+
                   //if call_number_type == 1 it should be dewey
                   if($itemData->call_number_type == 1)
                   {
@@ -191,7 +213,14 @@ if (isset($_POST['submit'])) {
 
                 $percentage = round($row * 100 / $num_rows); // determine the % of completion / load
                 //THIS is the most important part. This function will close the session writting. Why? Because if the script loop is still running, the $_SESSION will be unaccesible and you have to wait till it ends to access it.
-                $_SESSION['percentage'] = $percentage;
+                echo '<script>
+                parent.document.getElementById("progress-bar").innerHTML="<div style=\"width:'.$percentage.'%;background:linear-gradient(to bottom, rgba(125,126,125,1) 0%,rgba(14,14,14,1) 100%); ;height:35px;\">&nbsp;</div>";
+                parent.document.getElementById("information").innerHTML="<div style=\"text-align:center; font-weight:bold\">'.$percentage.' % processed.</div>";</script>';
+
+                ob_flush(); 
+                flush(); 
+                
+                /*$_SESSION['percentage'] = $percentage;
                 $_SESSION['job'] = "Retrieving Barcodes From API";
                 if ($percentage == 100)
                 {
@@ -199,8 +228,13 @@ if (isset($_POST['submit'])) {
                   $_SESSION['percentage'] = 0;
                 }
 
-     session_write_close();
+     session_write_close();*/
         }
+        echo '<script>
+        parent.document.getElementById("progress-section").innerHTML="<div style=\"display:none;</div>";
+        </script>';
+        //session_destroy(); 
+
         //pre($unsorted);
         //This converts arroy of stdClass objects to a mutlidimensional
         //array so we can sort using array sort
