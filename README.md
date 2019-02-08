@@ -18,4 +18,8 @@ Run "docker-compose up" in project home directory
 5.
 Navigate to http://localhost:8080 in your browser and you should be able to see your list of libraries in the drop down list.
 
+6.
+customize index.php
+For the index.php file you will also want to modify Change id="itemType" selections to meet your needs (corresponds to material type choices you have enabled in Alma) Change id="policy" selections to meet your needs (corresponds to item policy types defined in Alma)
+
 The docker config for this installation was based off of these instructions: https://bitpress.io/simple-approach-using-docker-with-php/
