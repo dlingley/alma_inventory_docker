@@ -7,7 +7,7 @@ The details of this application and how to run it can be found here: https://dev
 
 2. Clone the Repo
 
-3. Add Alma key with Prod read-only access to Bibs and Configuration: https://www.screencast.com/t/x2RK4R5JaMwh to the key.php file in the root of the cloned directory.
+3. Add Alma key with Prod read-only access to Bibs and Configuration: https://www.screencast.com/t/x2RK4R5JaMwh to the key.php file in the root of the cloned directory: https://www.screencast.com/t/0ZQvml3NAjrk
 
 4. Run "docker-compose up" in project home directory
 
