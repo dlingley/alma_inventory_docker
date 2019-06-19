@@ -2,6 +2,8 @@
 Alma Inventory API setup which can be launched using docker on Mac, Linux or Windows.
 The details of this application and how to run it can be found here: https://developers.exlibrisgroup.com/blog/Shelf-Inventory-using-Alma-APIs
 
+Pre-requisites
+For production use this application should be deployed into your institution's PHP web server environment. The Dockerfiles in this repository will demonstrate how to deploy this appliaciton using PHP. The Dockerfiles are useful for testing out the application.
 
 1. Install Docker if not already installed: https://www.docker.com/products/docker-desktop 
 
