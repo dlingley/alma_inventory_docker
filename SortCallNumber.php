@@ -47,7 +47,7 @@ function NormalizeLC($lc_call_no_orig)
         $lc_call_no = preg_replace("/$mark(\d+)/", "$mark$1;", $lc_call_no);
     } // end foreach int marker
     // Remove any inital white space
-    $lc_call_no = preg_replace("/\s*/", "", $lc_call_no);
+    $lc_call_no = preg_replace("/^\s*/", "", $lc_call_no);
 
     if (preg_match("/^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/", $lc_call_no, $m)) {
         $initial_letters = $m[1];
