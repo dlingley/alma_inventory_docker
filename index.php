@@ -70,6 +70,18 @@ require("key.php");
       //call reformed on your form
       $('#ShelfLister').reformed().validate();
   });
+//Code to show loader image
+$(document).ready(function() {
+//hide on start
+ $('#loading').hide();
+
+ $('#ShelfLister').submit(function() {
+    startProgress(pg);
+     $("#loading").show();
+     return true;
+ });
+
+});
 
   </script>
   <!-- end necessary reformed js -->
@@ -137,13 +149,69 @@ require("key.php");
     }
     <!-- end location lookup Ajax js -->
 </script>
+<!-- Start progress Ajax js -->
+<script type="text/javascript">
+    var progress = 0;
+    var job = "";
+
+    function startProgress(barName){
+                console.log("PG Process Started");
+                progressLoop(barName);
+            }
+
+            function progressLoop(barName){
+                console.log("Progress Called");
+                $.ajax({
+                    url: "getProgress.php",
+                    cache: false,
+                    dataType: "JSON",
+                    success: function(data){
+                        console.log(data);
+                        obj = JSON.parse(data);
+                        console.log(obj.job);
+                        console.log(obj.percentage);
+                        var pBar = document.getElementById('pg');
+                        //console.log("pSUCCESS: " . obj.percentage);
+                        pBar.value = obj.percentage;
+                        $('.progress-value').html(obj.job + ': ' + obj.percentage + '%');
+                        if (obj.percentage < 100 || obj.job != "complete" ){
+                            setTimeout(function(){ progressLoop(barName); }, 1000*2);
+                        }
+                    },
+                    error: function(xhr,status,err){
+                        console.log("pERROR: " + err);
+                        //alert("PROGRESS ERROR");
+                    }
+                });
+            }
+
+</script>
+<!-- End progress Ajax js -->
 
   <!-- The following style code is NOT necessary; just some styling to center the form on the page and set the default font size -->
   <style type="text/css">
   	body { font: 12px/14px Arial;}
   	div.reformed-form { width: 550px; margin: 5px auto;}
 
+  #loading {
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  left: 0px;
+  position: fixed;
+  display: block;
+  opacity: 0.9;
+  background-color: #fff;
+  z-index: 99;
+  text-align: center;
+}
 
+#loading-image {
+  position: absolute;
+  top: 25%;
+  left: 25%;
+  z-index: 100;
+}
 
 import url(http://fonts.googleapis.com/css?family=Expletus+Sans);
 
@@ -178,15 +246,79 @@ h2 {
 
 	padding: 0 0 .25em;
 }
+
+/* Styling the determinate progress element */
+
+progress[value] {
+	appearance: none;
+	border: none;
+	width: 50%; height: 20px;
+	  background-color: whiteSmoke;
+	  border-radius: 3px;
+	  box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
+	color: royalblue;
+  position: fixed;
+  top: 40%;
+  left: 25%;
+	margin: 0 0 1.5em;
+}
+
+progress[value]::-webkit-progress-bar {
+	background-color: whiteSmoke;
+	border-radius: 3px;
+	box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
+}
+
+progress[value]::-webkit-progress-value {
+	position: relative;
+	background-size: 35px 20px, 100% 100%, 100% 100%;
+	border-radius:3px;
+	animation: animate-stripes 5s linear infinite;
+}
+
+@keyframes animate-stripes { 100% { background-position: -100px 0; } }
+
+progress[value]::-moz-progress-bar {
+	background-image:
+	-moz-linear-gradient( 135deg,
+													 transparent,
+													 transparent 33%,
+													 rgba(0,0,0,.1) 33%,
+													 rgba(0,0,0,.1) 66%,
+													 transparent 66%),
+    -moz-linear-gradient( top,
+														rgba(255, 255, 255, .25),
+														rgba(0,0,0,.2)),
+     -moz-linear-gradient( left, #09c, #f44);
+	background-size: 35px 20px, 100% 100%, 100% 100%;
+	border-radius:3px;
+}
+
+.progress-value {
+    padding: 0px 5px;
+    line-height: 20px;
+    margin-left: 5px;
+    color: black;
+    height: 18px;
+    position: fixed;
+    top: 38%;
+    left: 40%;
+}
   </style>
 
 
   </head>
   <body>
 
+<div id="loading">
+
+<progress id="pg" max="100" value="0" class="html5"/></progress>
+
+  <span class="progress-value">0%</span>
+</div>
     <div class="reformed-form">
       <h1>Inventory Report <small>Fill in form and submit</small></h1>
-    	<form method="post" name="ShelfLister" id="ShelfLister" action="<?php echo 'https://' . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF']) . 'process_barcodes.php'; ?>" enctype="multipart/form-data">
+    	<form method="post" name="ShelfLister" id="ShelfLister" action="<?php echo 'https://' . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF']) . '/process_barcodes.php'; ?>" enctype="multipart/form-data">
     		<dl>
     			<dt>
     				<label for="flie">Barcode XLSX FIle:</label>
@@ -217,7 +349,7 @@ h2 {
     			</dt>
     			<dd>
     				<select size="1" name="library" id="library" class="required"  onchange=AjaxFunction();>
-              <?Php
+              <?php
 $ch = curl_init();
 $url = 'https://api-na.hosted.exlibrisgroup.com/almaws/v1/conf/libraries';
 $queryParams = '?' . urlencode('lang') . '=' . urlencode('en') . '&' . urlencode('apikey') . '=' . ALMA_SHELFLIST_API_KEY;

@@ -47,7 +47,7 @@ function NormalizeLC($lc_call_no_orig)
         $lc_call_no = preg_replace("/$mark(\d+)/", "$mark$1;", $lc_call_no);
     } // end foreach int marker
     // Remove any inital white space
-    $lc_call_no = preg_replace("/^\s*/", "", $lc_call_no);
+    $lc_call_no = preg_replace("/\s*/", "", $lc_call_no);
 
     if (preg_match("/^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/", $lc_call_no, $m)) {
         $initial_letters = $m[1];
@@ -194,6 +194,17 @@ function NormalizeLC($lc_call_no_orig)
 		if (1 == $digit_group_count) {
         $tokens[$first_digit_group_idx] .= '_000000000000000';
     }
+
+		// Pad the numeric portion of cutter tokens (already lowercased, e.g. "n857" -> "n857000000000000")
+		// so that cutter numbers are treated as decimal fractions.
+		// Without this, "n8576" would sort before "n857" because the underscore
+		// separator following "n857" has a higher ASCII value than the digit "6".
+		$token_count = count($tokens);
+		for ($i = 0; $i < $token_count; $i++) {
+			if (preg_match('/^([a-z!]+)(\d+)(.*)$/', $tokens[$i], $m)) {
+				$tokens[$i] = $m[1] . str_pad($m[2], 15, "0", STR_PAD_RIGHT) . $m[3];
+			}
+		}
 
     $key = implode("_", $tokens);
 		return $key;
