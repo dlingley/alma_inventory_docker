@@ -41,7 +41,7 @@ function NormalizeLC($lc_call_no_orig)
     //Convert all alpha to uppercase
     $lc_call_no = strtoupper($lc_call_no_orig);
     // define special trimmings that indicate integer
-    $integer_markers = array("C.", "BD.", "DISC", "DISK", "NO.", "PT.", "v.", "V.", "VOL.");
+    $integer_markers = array("C.", "BD.", "DISC", "DISK", "NO.", "PT.", "T.", "v.", "V.", "VOL.");
     foreach ($integer_markers as $mark) {
         $mark = str_replace(".", "\.", $mark);
         $lc_call_no = preg_replace("/$mark(\d+)/", "$mark$1;", $lc_call_no);
@@ -143,8 +143,8 @@ function NormalizeLC($lc_call_no_orig)
 		} // end SortLC
 
 	function normalizeDewey($callNum){
-        //Insert ! when lowercase letter comes after number
-        $init = preg_replace('/([0-9])(?=[a-z])/','$1!', $callNum);
+        //Insert ! when any letter comes after number (case-insensitive)
+        $init = preg_replace('/([0-9])(?=[a-zA-Z])/','$1!', $callNum);
 		//make all characters lowercase... sort works better this way for dewey...
 		$init = strtolower($init);
 		//get rid of leading whitespace
@@ -203,6 +203,18 @@ function NormalizeLC($lc_call_no_orig)
 		for ($i = 0; $i < $token_count; $i++) {
 			if (preg_match('/^([a-z!]+)(\d+)(.*)$/', $tokens[$i], $m)) {
 				$tokens[$i] = $m[1] . str_pad($m[2], 15, "0", STR_PAD_RIGHT) . $m[3];
+			}
+		}
+
+		// Left-pad remaining purely numeric tokens (e.g. volume numbers: t.1, t.10)
+		// so that they sort numerically in string comparisons.
+		// Skip the first digit group (the Dewey class number) — it's already handled
+		// by the digit_group_count logic above and must not be reformatted.
+		$token_count2 = count($tokens);
+		for ($i = 0; $i < $token_count2; $i++) {
+			if (isset($first_digit_group_idx) && $i === $first_digit_group_idx) continue;
+			if (preg_match('/^\d+$/', $tokens[$i]) && strlen($tokens[$i]) < 10) {
+				$tokens[$i] = str_pad($tokens[$i], 10, "0", STR_PAD_LEFT);
 			}
 		}
 

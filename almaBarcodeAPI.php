@@ -37,7 +37,11 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
              }
              //$cache_expired = true;
              if (!$cache_expired) {
-                 $xml_barcode_result = simplexml_load_file("cache/barcodes/" . $barcode . ".xml");
+                 if (filesize("cache/barcodes/" . $barcode . ".xml") > 0) {
+                     $xml_barcode_result = @simplexml_load_file("cache/barcodes/" . $barcode . ".xml");
+                 } else {
+                     $xml_barcode_result = false;
+                 }
                  if (isset($_GET['debug'])) print("loaded data from cache file: cache/barcodes/" . $barcode . ".xml<br>\n");
              }
              else {
@@ -82,7 +86,7 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
          }
 
          // save result to cache
-         if ($result !== false && strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/")) {
+         if ($result !== false && strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/") && !empty(trim($result))) {
              file_put_contents("cache/barcodes/" . $barcode . ".xml", $result);
              if (isset($_GET['debug'])) {
                  print("Barcode File written to cache\n");
@@ -113,7 +117,7 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
      $item_obj->in_temp_location = (string)$xml_barcode_result->holding_data->in_temp_location;
      $item_obj->call_number_type = (string)$xml_barcode_result->holding_data->call_number_type;
      $item_obj->status = (string)$xml_barcode_result->item_data->base_status;
-     $item_obj->status_desc = (string)$xml_barcode_result->item_data->base_status['desc'];
+     $item_obj->status_desc = isset($xml_barcode_result->item_data->base_status['desc']) ? (string)$xml_barcode_result->item_data->base_status['desc'] : '';
      $item_obj->process_type = (string)$xml_barcode_result->item_data->process_type;
      $item_obj->library = (string)$xml_barcode_result->item_data->library;
      $item_obj->location = (string)$xml_barcode_result->item_data->location;
@@ -161,7 +165,11 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
                          if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
                  }
                  if (!$cache_expired) {
-                     $xml_barcode_result = simplexml_load_file("cache/barcodes/" . $barcode_enc . ".xml");
+                     if (filesize("cache/barcodes/" . $barcode_enc . ".xml") > 0) {
+                         $xml_barcode_result = @simplexml_load_file("cache/barcodes/" . $barcode_enc . ".xml");
+                     } else {
+                         $xml_barcode_result = false;
+                     }
                  }
              }
          }
@@ -213,7 +221,7 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
          $barcode_enc = $to_fetch[$row]['barcode_enc'];
 
          if ($result !== false && $curl_error === 0) {
-             if (strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/")) {
+             if (strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/") && !empty(trim($result))) {
                  file_put_contents("cache/barcodes/" . $barcode_enc . ".xml", $result);
              }
              $xml = simplexml_load_string($result);

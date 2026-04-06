@@ -53,6 +53,7 @@
 */
 
 class SimpleXLSX {
+	public $datasec;
 	// Don't remove this string! Created by Sergey Schuchkin from http://www.sibvision.ru - professional php developers team 2010-2013
 	private $workbook;
 	private $sheets;
@@ -290,7 +291,7 @@ class SimpleXLSX {
 			$index = 0;
 
 			for ($i = $colLen-1; $i >= 0; $i--)
-				$index += (ord($col{$i}) - 64) * pow(26, $colLen-$i-1);
+				$index += (ord($col[$i]) - 64) * pow(26, $colLen-$i-1);
 
 			return array($index-1, $row-1);
 		} else

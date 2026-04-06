@@ -1,2 +1,6 @@
 .env
 vendor/
+cache/barcodes/*.xml
+cache/upload/*.xlsx
+cache/output/*.csv
+key.php

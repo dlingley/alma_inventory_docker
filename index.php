@@ -1,355 +1,13 @@
 <?php
-if(!isset($_SESSION))
-    {
-        session_start();
-    }
-    $_SESSION['progress']=0;
-    session_write_close();
+$progress_id = uniqid('prog_', true);
+// Clean up any stale progress files older than 1 hour
+foreach (glob('/tmp/progress_*.json') as $f) {
+    if (filemtime($f) < time() - 3600) @unlink($f);
+}
 //require("login.php");
 require("key.php");
-?>
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <!--
-  	First, include the main jQuery and jQuery UI javascripts (not included with reformed; you may use Google's CDN links as below:)
-  -->
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
-  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/jquery-ui.min.js"></script>
 
-  <!--
-  	Next, include links to the form's CSS, taking care to ensure the correct paths dependent upon where you have uploaded the files
-  	contained within the reformed.zip and the reformed-form-(YOUR-THEME-HERE).zip files.
-
-  	Be sure to edit the line:
-  	<link rel="stylesheet" href="css/reformed-form-YOUR-THEME/jquery-ui-1.8.7.custom.css" type="text/css" />
-  	replacing "YOUR-THEME" with the name of your theme (in this case, it's ui-lightness).
-  -->
-  <!-- necessary reformed CSS -->
-  <!--[if IE]>
-      <link rel="stylesheet" type="text/css" href="reformed/css/ie_fieldset_fix.css" />
-  <![endif]-->
-  <link rel="stylesheet" href="reformed/css/uniform.aristo.css" type="text/css" />
-  <link rel="stylesheet" href="reformed/css/ui.reformed.css" type="text/css" />
-  <link rel="stylesheet" href="reformed/css/jquery-ui-1.8.7.custom.css" type="text/css" />
-  <!-- end necessary reformed CSS -->
-
-  <!--
-  	Finally, include the necessary javascript to enable the validation rules and style the form.
-
-  	Be sure to edit the line:
-  	$('#YOURFORMID').reformed().validate();
-  	and replace YOURFORMID with the actual id attribute's value of your form (e.g., "demo" below).
-  -->
-  <!-- necessary reformed js -->
-  <script src="reformed/js/jquery.uniform.min.js" type="text/javascript"></script>
-  <script src="reformed/js/jquery.validate.min.js" type="text/javascript"></script>
-  <script src="reformed/js/jquery.ui.reformed.min.js" type="text/javascript"></script>
-
-  <script type="text/javascript">
-  $(function(){ //on doc ready
-      //set validation options
-      //(this creates range messages from max/min values)
-      $.validator.autoCreateRanges = true;
-      $.validator.setDefaults({
-          highlight: function(input) {
-              $(input).addClass("ui-state-highlight");
-          },
-          unhighlight: function(input) {
-              $(input).removeClass("ui-state-highlight");
-          },
-          errorClass: 'error_msg',
-          wrapper : 'dd',
-          errorPlacement : function(error, element) {
-              error.addClass('ui-state-error');
-              error.prepend('<span class="ui-icon ui-icon-alert"></span>');
-              error.appendTo(element.closest('dl.ui-helper-clearfix').effect('highlight', {}, 2000));
-          }
-      });
-
-      //call reformed on your form
-      $('#ShelfLister').reformed().validate();
-  });
-//Code to show loader image
-$(document).ready(function() {
-//hide on start
- $('#loading').hide();
-
- $('#ShelfLister').submit(function() {
-    startProgress(pg);
-     $("#loading").show();
-     return true;
- });
-
-});
-
-  </script>
-  <!-- end necessary reformed js -->
-    <!-- start lookup Ajax js -->
-  <script type="text/javascript">
-  function AjaxFunction()
-  {
-  var httpxml;
-  try
-    {
-    // Firefox, Opera 8.0+, Safari
-    httpxml=new XMLHttpRequest();
-    }
-  catch (e)
-    {
-    // Internet Explorer
-  		  try
-     			 		{
-     				 httpxml=new ActiveXObject("Msxml2.XMLHTTP");
-      				}
-    			catch (e)
-      				{
-      			try
-        		{
-        		httpxml=new ActiveXObject("Microsoft.XMLHTTP");
-       		 }
-      			catch (e)
-        		{
-        		alert("Your browser does not support AJAX!");
-        		return false;
-        		}
-      		}
-    }
-  function stateck()
-      {
-      if(httpxml.readyState==4)
-        {
-  //alert(httpxml.responseText);
-  var myarray = JSON.parse(httpxml.responseText);
-  // Remove the options from 2nd dropdown list
-  for(j=document.ShelfLister.location.options.length-1;j>=0;j--)
-  {
-  document.ShelfLister.location.remove(j);
-  }
-
-
-  for (i=0;i<myarray.locationData.length;i++)
-  {
-  var optn = document.createElement("OPTION");
-  optn.text = myarray.locationData[i].name;
-  optn.value = myarray.locationData[i].code;
-  document.ShelfLister.location.options.add(optn);
-
-  }
-        }
-      } // end of function stateck
-  var url="almaLocationsAPI.php";
-  var cat_id=document.getElementById('library').value;
-  url=url+"?lib_id="+cat_id;
-  url=url+"&sid="+Math.random();
-  httpxml.onreadystatechange=stateck;
-  //alert(url);
-  httpxml.open("GET",url,true);
-  httpxml.send(null);
-    }
-    <!-- end location lookup Ajax js -->
-</script>
-<!-- Start progress Ajax js -->
-<script type="text/javascript">
-    var progress = 0;
-    var job = "";
-
-    function startProgress(barName){
-                console.log("PG Process Started");
-                progressLoop(barName);
-            }
-
-            function progressLoop(barName){
-                console.log("Progress Called");
-                $.ajax({
-                    url: "getProgress.php",
-                    cache: false,
-                    dataType: "JSON",
-                    success: function(data){
-                        console.log(data);
-                        obj = JSON.parse(data);
-                        console.log(obj.job);
-                        console.log(obj.percentage);
-                        var pBar = document.getElementById('pg');
-                        //console.log("pSUCCESS: " . obj.percentage);
-                        pBar.value = obj.percentage;
-                        $('.progress-value').html(obj.job + ': ' + obj.percentage + '%');
-                        if (obj.percentage < 100 || obj.job != "complete" ){
-                            setTimeout(function(){ progressLoop(barName); }, 1000*2);
-                        }
-                    },
-                    error: function(xhr,status,err){
-                        console.log("pERROR: " + err);
-                        //alert("PROGRESS ERROR");
-                    }
-                });
-            }
-
-</script>
-<!-- End progress Ajax js -->
-
-  <!-- The following style code is NOT necessary; just some styling to center the form on the page and set the default font size -->
-  <style type="text/css">
-  	body { font: 12px/14px Arial;}
-  	div.reformed-form { width: 550px; margin: 5px auto;}
-
-  #loading {
-  width: 100%;
-  height: 100%;
-  top: 0px;
-  left: 0px;
-  position: fixed;
-  display: block;
-  opacity: 0.9;
-  background-color: #fff;
-  z-index: 99;
-  text-align: center;
-}
-
-#loading-image {
-  position: absolute;
-  top: 25%;
-  left: 25%;
-  z-index: 100;
-}
-
-import url(http://fonts.googleapis.com/css?family=Expletus+Sans);
-
-/* Basic resets */
-
-* {
-	margin:0; padding:0;
-	box-sizing: border-box;
-}
-
-body {
-margin: 50px auto 0;
-max-width: 800px;
-
-font-family: "Expletus Sans", sans-serif;
-}
-
-li {
-
-	width: 50%;
-	float: left;
-	list-style-type: none;
-
-	padding-right: 5.3333333%;
-}
-
-li:nth-child(even) { margin-bottom: 5em;}
-
-h2 {
-	margin: 0 0 1.5em;
-	border-bottom: 1px solid #ccc;
-
-	padding: 0 0 .25em;
-}
-
-/* Styling the determinate progress element */
-
-progress[value] {
-	appearance: none;
-	border: none;
-	width: 50%; height: 20px;
-	  background-color: whiteSmoke;
-	  border-radius: 3px;
-	  box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
-	color: royalblue;
-  position: fixed;
-  top: 40%;
-  left: 25%;
-	margin: 0 0 1.5em;
-}
-
-progress[value]::-webkit-progress-bar {
-	background-color: whiteSmoke;
-	border-radius: 3px;
-	box-shadow: 0 2px 3px rgba(0,0,0,.5) inset;
-}
-
-progress[value]::-webkit-progress-value {
-	position: relative;
-	background-size: 35px 20px, 100% 100%, 100% 100%;
-	border-radius:3px;
-	animation: animate-stripes 5s linear infinite;
-}
-
-@keyframes animate-stripes { 100% { background-position: -100px 0; } }
-
-progress[value]::-moz-progress-bar {
-	background-image:
-	-moz-linear-gradient( 135deg,
-													 transparent,
-													 transparent 33%,
-													 rgba(0,0,0,.1) 33%,
-													 rgba(0,0,0,.1) 66%,
-													 transparent 66%),
-    -moz-linear-gradient( top,
-														rgba(255, 255, 255, .25),
-														rgba(0,0,0,.2)),
-     -moz-linear-gradient( left, #09c, #f44);
-	background-size: 35px 20px, 100% 100%, 100% 100%;
-	border-radius:3px;
-}
-
-.progress-value {
-    padding: 0px 5px;
-    line-height: 20px;
-    margin-left: 5px;
-    color: black;
-    height: 18px;
-    position: fixed;
-    top: 38%;
-    left: 40%;
-}
-  </style>
-
-
-  </head>
-  <body>
-
-<div id="loading">
-
-<progress id="pg" max="100" value="0" class="html5"/></progress>
-
-  <span class="progress-value">0%</span>
-</div>
-    <div class="reformed-form">
-      <h1>Inventory Report <small>Fill in form and submit</small></h1>
-    	<form method="post" name="ShelfLister" id="ShelfLister" action="<?php echo 'https://' . $_SERVER['HTTP_HOST'].dirname($_SERVER['PHP_SELF']) . '/process_barcodes.php'; ?>" enctype="multipart/form-data">
-    		<dl>
-    			<dt>
-    				<label for="flie">Barcode XLSX FIle:</label>
-    			</dt>
-    			<dd><input type="file" id="flie" class="required" name="file" accept=".xlsx" /></dd>
-    		</dl>
-    		<dl>
-    			<dt>
-    				<label for="cnType">Call Number<BR> Type</label>
-    			</dt>
-    			<dd>
-    				<ul>
-    					<li><input type="radio" class="required" id="cnType" name="cnType" value="lc" checked="checked" />
-    						<label>LC</label>
-    					</li>
-    					<li><input type="radio" class="required" id="cnType" name="cnType" value="dewey" />
-    						<label>Dewey</label>
-    					</li>
-    					<li><input type="radio" class="required" id="cnType" name="cnType" value="other" />
-    						<label>Other</label>
-    					</li>
-    				</ul>
-    						</dd>
-    		</dl>
-    		<dl>
-    			<dt>
-    				<label for="library">Library</label>
-    			</dt>
-    			<dd>
-    				<select size="1" name="library" id="library" class="required"  onchange=AjaxFunction();>
-              <?php
+// Fetch libraries from Alma API
 $ch = curl_init();
 $url = 'https://api-na.hosted.exlibrisgroup.com/almaws/v1/conf/libraries';
 $queryParams = '?' . urlencode('lang') . '=' . urlencode('en') . '&' . urlencode('apikey') . '=' . ALMA_SHELFLIST_API_KEY;
@@ -359,117 +17,693 @@ curl_setopt($ch, CURLOPT_HEADER, FALSE);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
 $response = curl_exec($ch);
 curl_close($ch);
-
 $xml_result = simplexml_load_string($response);
-// PARSE RESULTS
-	foreach($xml_result->library as $library)
-	{
-echo "<option value=$library->code>$library->name</option>";
+$libraries = [];
+if ($xml_result) {
+    foreach ($xml_result->library as $library) {
+        $libraries[] = ['code' => (string)$library->code, 'name' => (string)$library->name];
+    }
 }
 ?>
-    				</select>
-    			</dd>
-    		</dl>
-    		<dl>
-    			<dt>
-    				<label for="location">Scan Location</label>
-    			</dt>
-    			<dd>
-    				<select size="1" name="location" id="location" class="required">
-    				</select>
-    			</dd>
-    		</dl>
-    		<dl>
-    			<dt>
-    				<label for="itemType">Primary Item<BR> Type for Scanned Location</label>
-    			</dt>
-    			<dd>
-    				<select size="1" name="itemType" id="itemType" class="required">
-    					<option value="BOOK">Book</option>
-    					<option value="PERIODICAL">Periodical</option>
-              <option value="DVD">DVD</option>
-    					<option value="THESIS">Thesis</option>
-    				</select>
-    			</dd>
-    		</dl>
-        <dl>
-    			<dt>
-    				<label for="itemType">Primary Policy<BR> Type for Scanned Location</label>
-    			</dt>
-    			<dd>
-    				<select size="1" name="policy" id="policy" class="required">
-    					<option value="core">Core</option>
-    					<option value="reserve">Reserve</option>
-              <option value="cont lit">Contemporary Lit</option>
-    					<option value="media">Media</option>
-              <option value="juvenile">Juvenile</option>
-    				</select>
-    			</dd>
-    		</dl>
-        <dl>
-    			<dt>
-    				<label for="cnType">Only Report<BR>CN Order Problems?</label>
-    			</dt>
-    			<dd>
-    				<ul>
-    					<li><input type="radio" class="required" id="onlyOrder" name="onlyorder" value="false" checked="checked" />
-    						<label>No</label>
-    					</li>
-    					<li><input type="radio" class="required" id="onlyOrder" name="onlyorder" value="true" />
-    						<label>Yes</label>
-    					</li>
-    				</ul>
-    						</dd>
-    		</dl>
-        <dl>
-    			<dt>
-    				<label for="cnType">Only Report<BR>Problems Other Than CN?</label>
-    			</dt>
-    			<dd>
-    				<ul>
-    					<li><input type="radio" class="required" id="onlyOrder" name="onlyother" value="false" checked="checked" />
-    						<label>No</label>
-    					</li>
-    					<li><input type="radio" class="required" id="onlyOrder" name="onlyother" value="true" />
-    						<label>Yes</label>
-    					</li>
-    				</ul>
-    						</dd>
-    		</dl>
-        <dl>
-    			<dt>
-    				<label for="cnType">Report Only<BR> Problems?</label>
-    			</dt>
-    			<dd>
-    				<ul>
-    					<li><input type="radio" class="required" id="onlyProblems" name="onlyproblems" value="false" checked="checked" />
-    						<label>No</label>
-    					</li>
-    					<li><input type="radio" class="required" id="onlyProblems" name="onlyproblems" value="true" />
-    						<label>Yes</label>
-    					</li>
-    				</ul>
-    						</dd>
-    		</dl>
-			<dl>
-    			<dt>
-    				<label for="cnType">Clear Cache?</label>
-    			</dt>
-    			<dd>
-    				<ul>
-    					<li><input type="radio" class="required" id="clearCache" name="clearCache" value="false" checked="checked" />
-    						<label>No</label>
-    					</li>
-    					<li><input type="radio" class="required" id="clearCache" name="clearCache" value="true" />
-    						<label>Yes</label>
-    					</li>
-    				</ul>
-    						</dd>
-    		</dl>
-    		<div id="submit_buttons">
-    			<input type="submit" name="submit"/>
-    		</div>
-    		</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alma Inventory Scanner</title>
+    <meta name="description" content="Alma library inventory scanning and shelf-reading tool for barcode processing and call number order verification.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        /* ===== Design Tokens ===== */
+        :root {
+            --color-bg: #f0f2f5;
+            --color-card: #ffffff;
+            --color-header: #1e293b;
+            --color-header-accent: #334155;
+            --color-primary: #3b82f6;
+            --color-primary-hover: #2563eb;
+            --color-primary-light: #eff6ff;
+            --color-text: #1e293b;
+            --color-text-secondary: #64748b;
+            --color-border: #e2e8f0;
+            --color-border-focus: #93c5fd;
+            --color-success: #22c55e;
+            --color-danger: #ef4444;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.05);
+            --shadow-lg: 0 10px 25px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.04);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== Reset & Base ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font);
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ===== Header ===== */
+        .header {
+            background: linear-gradient(135deg, var(--color-header) 0%, var(--color-header-accent) 100%);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(59,130,246,0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+        .header h1 {
+            color: #fff;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            position: relative;
+        }
+        .header h1 .icon {
+            display: inline-block;
+            margin-right: 0.5rem;
+            font-size: 1.5rem;
+            vertical-align: middle;
+            opacity: 0.9;
+        }
+        .header p {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            position: relative;
+        }
+
+        /* ===== Main Card ===== */
+        .card {
+            max-width: 640px;
+            margin: -1.5rem auto 2rem;
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            padding: 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===== Form Section ===== */
+        .form-section {
+            margin-bottom: 1.75rem;
+        }
+        .form-section:last-of-type { margin-bottom: 0; }
+
+        .form-section-title {
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--color-text-secondary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .form-section-title::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--color-border);
+        }
+
+        /* ===== Labels ===== */
+        label {
+            display: block;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 0.375rem;
+        }
+
+        /* ===== File Upload ===== */
+        .file-upload-area {
+            border: 2px dashed var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 2rem 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all var(--transition);
+            position: relative;
+            background: var(--color-bg);
+        }
+        .file-upload-area:hover,
+        .file-upload-area.dragover {
+            border-color: var(--color-primary);
+            background: var(--color-primary-light);
+        }
+        .file-upload-area .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            display: block;
+            opacity: 0.5;
+        }
+        .file-upload-area .upload-text {
+            font-size: 0.875rem;
+            color: var(--color-text-secondary);
+        }
+        .file-upload-area .upload-text strong {
+            color: var(--color-primary);
+        }
+        .file-upload-area .file-name {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: var(--color-success);
+            margin-top: 0.5rem;
+            display: none;
+        }
+        .file-upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        /* ===== Selects ===== */
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .form-group { margin-bottom: 1rem; }
+        .form-group:last-child { margin-bottom: 0; }
+
+        select {
+            width: 100%;
+            padding: 0.625rem 2rem 0.625rem 0.75rem;
+            font-family: var(--font);
+            font-size: 0.875rem;
+            border: 1.5px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            background: var(--color-card);
+            color: var(--color-text);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        select:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+        }
+        select:hover { border-color: #cbd5e1; }
+
+        /* ===== Pill Radio Buttons ===== */
+        .pill-group {
+            display: flex;
+            gap: 0;
+            background: var(--color-bg);
+            border-radius: var(--radius-full);
+            padding: 3px;
+            border: 1.5px solid var(--color-border);
+        }
+        .pill-group label {
+            flex: 1;
+            text-align: center;
+            padding: 0.5rem 1rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            transition: all var(--transition);
+            color: var(--color-text-secondary);
+            margin-bottom: 0;
+            user-select: none;
+        }
+        .pill-group input[type="radio"] { display: none; }
+        .pill-group input[type="radio"]:checked + label {
+            background: var(--color-primary);
+            color: #fff;
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* ===== Toggle Switch ===== */
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem 1.5rem;
+        }
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.625rem 0.875rem;
+            background: var(--color-bg);
+            border-radius: var(--radius-sm);
+            transition: background var(--transition);
+        }
+        .toggle-item:hover { background: #e8edf3; }
+        .toggle-item .toggle-label {
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: var(--color-text);
+            margin-bottom: 0;
+        }
+
+        .toggle {
+            position: relative;
+            width: 40px;
+            height: 22px;
+            flex-shrink: 0;
+        }
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #cbd5e1;
+            border-radius: var(--radius-full);
+            transition: all var(--transition);
+        }
+        .toggle .slider::before {
+            content: '';
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 3px;
+            bottom: 3px;
+            background: #fff;
+            border-radius: 50%;
+            transition: all var(--transition);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .toggle input:checked + .slider {
+            background: var(--color-primary);
+        }
+        .toggle input:checked + .slider::before {
+            transform: translateX(18px);
+        }
+
+        /* ===== Submit Button ===== */
+        .submit-btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            font-family: var(--font);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #fff;
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition);
+            margin-top: 1.5rem;
+            letter-spacing: -0.01em;
+            position: relative;
+            overflow: hidden;
+        }
+        .submit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59,130,246,0.35);
+        }
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+        .submit-btn::after {
+            content: ' →';
+        }
+
+        /* ===== Progress Overlay ===== */
+        #loading {
+            position: fixed;
+            inset: 0;
+            display: none;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        #loading.active { display: flex; }
+
+        .progress-card {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem 2rem;
+            width: 90%;
+            max-width: 420px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .progress-card h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .progress-card .progress-status {
+            font-size: 0.8125rem;
+            color: var(--color-text-secondary);
+            margin-bottom: 1.25rem;
+        }
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 10px;
+            background: var(--color-bg);
+            border-radius: var(--radius-full);
+            overflow: hidden;
+            margin-bottom: 0.75rem;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--color-primary), #60a5fa);
+            border-radius: var(--radius-full);
+            transition: width 0.5s ease;
+            position: relative;
+        }
+        .progress-bar-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+        .progress-percentage {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--color-primary);
+        }
+
+        /* ===== Footer ===== */
+        .footer {
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+        }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 600px) {
+            .card { margin: -1rem 0.75rem 1.5rem; padding: 1.25rem; }
+            .form-row { grid-template-columns: 1fr; }
+            .toggle-grid { grid-template-columns: 1fr; }
+            .header h1 { font-size: 1.375rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== Header ===== -->
+<header class="header">
+    <h1><span class="icon">📋</span> Alma Inventory Scanner</h1>
+    <p>Upload barcodes, verify shelf order, generate reports</p>
+</header>
+
+<!-- ===== Progress Overlay ===== -->
+<div id="loading">
+    <div class="progress-card">
+        <h3>Processing Barcodes</h3>
+        <p class="progress-status" id="progress-job">Initializing...</p>
+        <div class="progress-bar-wrapper">
+            <div class="progress-bar-fill" id="pg-fill"></div>
+        </div>
+        <div class="progress-percentage" id="pg-percent">0%</div>
+        <progress id="pg" max="100" value="0" style="display:none;"></progress>
     </div>
-  </body>
+</div>
+
+<!-- ===== Main Card ===== -->
+<main class="card">
+    <iframe name="process_frame" id="process_frame" style="display:none;"></iframe>
+    <form method="post" name="ShelfLister" id="ShelfLister" action="process_barcodes.php" enctype="multipart/form-data" target="process_frame">
+        <input type="hidden" name="progress_id" value="<?php echo $progress_id; ?>" />
+
+        <!-- File Upload -->
+        <div class="form-section">
+            <div class="form-section-title">File Upload</div>
+            <div class="file-upload-area" id="file-drop-area">
+                <span class="upload-icon">📁</span>
+                <p class="upload-text"><strong>Click to browse</strong> or drag & drop your file</p>
+                <p class="upload-text" style="font-size:0.75rem; margin-top:0.25rem;">Accepts .xlsx barcode files</p>
+                <p class="file-name" id="file-display-name"></p>
+                <input type="file" id="flie" class="required" name="file" accept=".xlsx" />
+            </div>
+        </div>
+
+        <!-- Call Number Type -->
+        <div class="form-section">
+            <div class="form-section-title">Classification</div>
+            <label>Call Number Type</label>
+            <div class="pill-group">
+                <input type="radio" class="required" id="cnLC" name="cnType" value="lc" checked="checked" />
+                <label for="cnLC">LC</label>
+                <input type="radio" class="required" id="cnDewey" name="cnType" value="dewey" />
+                <label for="cnDewey">Dewey</label>
+                <input type="radio" class="required" id="cnOther" name="cnType" value="other" />
+                <label for="cnOther">Other</label>
+            </div>
+        </div>
+
+        <!-- Library & Location -->
+        <div class="form-section">
+            <div class="form-section-title">Location</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="library">Library</label>
+                    <select size="1" name="library" id="library" class="required">
+                        <?php foreach ($libraries as $lib): ?>
+                        <option value="<?php echo htmlspecialchars($lib['code']); ?>"><?php echo htmlspecialchars($lib['name']); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="location">Scan Location</label>
+                    <select size="1" name="location" id="location" class="required">
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="itemType">Primary Item Type</label>
+                    <select size="1" name="itemType" id="itemType" class="required">
+                        <option value="BOOK">Book</option>
+                        <option value="PERIODICAL">Periodical</option>
+                        <option value="DVD">DVD</option>
+                        <option value="THESIS">Thesis</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="policy">Primary Policy</label>
+                    <select size="1" name="policy" id="policy" class="required">
+                        <option value="core">Core</option>
+                        <option value="reserve">Reserve</option>
+                        <option value="cont lit">Contemporary Lit</option>
+                        <option value="media">Media</option>
+                        <option value="juvenile">Juvenile</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Options -->
+        <div class="form-section">
+            <div class="form-section-title">Report Options</div>
+            <div class="toggle-grid">
+                <div class="toggle-item">
+                    <span class="toggle-label">Only CN Order Problems</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="toggle-onlyorder" />
+                        <span class="slider"></span>
+                    </label>
+                    <input type="hidden" name="onlyorder" id="onlyorder-val" value="false" />
+                </div>
+                <div class="toggle-item">
+                    <span class="toggle-label">Only Non-CN Problems</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="toggle-onlyother" />
+                        <span class="slider"></span>
+                    </label>
+                    <input type="hidden" name="onlyother" id="onlyother-val" value="false" />
+                </div>
+                <div class="toggle-item">
+                    <span class="toggle-label">Report Only Problems</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="toggle-onlyproblems" />
+                        <span class="slider"></span>
+                    </label>
+                    <input type="hidden" name="onlyproblems" id="onlyproblems-val" value="false" />
+                </div>
+                <div class="toggle-item">
+                    <span class="toggle-label">Clear Cache</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="toggle-clearcache" />
+                        <span class="slider"></span>
+                    </label>
+                    <input type="hidden" name="clearCache" id="clearCache-val" value="false" />
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="submit-btn" name="submit">Scan & Process Inventory</button>
+    </form>
+</main>
+
+<footer class="footer">
+    Alma Inventory Scanner &middot; Powered by Alma API
+</footer>
+
+<!-- ===== JavaScript ===== -->
+<script>
+$(document).ready(function() {
+
+    // --- File Upload Display ---
+    var fileInput = document.getElementById('flie');
+    var dropArea = document.getElementById('file-drop-area');
+    var fileDisplay = document.getElementById('file-display-name');
+
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            fileDisplay.textContent = '✓ ' + this.files[0].name;
+            fileDisplay.style.display = 'block';
+            dropArea.style.borderColor = '#22c55e';
+        }
+    });
+    ['dragenter','dragover'].forEach(function(evt) {
+        dropArea.addEventListener(evt, function(e) {
+            e.preventDefault();
+            dropArea.classList.add('dragover');
+        });
+    });
+    ['dragleave','drop'].forEach(function(evt) {
+        dropArea.addEventListener(evt, function(e) {
+            e.preventDefault();
+            dropArea.classList.remove('dragover');
+        });
+    });
+
+    // --- Toggle Switches → Hidden Radio Values ---
+    $('#toggle-onlyorder').change(function()    { $('#onlyorder-val').val(this.checked ? 'true' : 'false'); });
+    $('#toggle-onlyother').change(function()    { $('#onlyother-val').val(this.checked ? 'true' : 'false'); });
+    $('#toggle-onlyproblems').change(function() { $('#onlyproblems-val').val(this.checked ? 'true' : 'false'); });
+    $('#toggle-clearcache').change(function()   { $('#clearCache-val').val(this.checked ? 'true' : 'false'); });
+
+    // --- Library → Location AJAX Lookup ---
+    $('#library').on('change', function() { loadLocations(); });
+    function loadLocations() {
+        var libId = $('#library').val();
+        $.ajax({
+            url: 'almaLocationsAPI.php',
+            data: { lib_id: libId, sid: Math.random() },
+            dataType: 'json',
+            success: function(data) {
+                var $loc = $('#location');
+                $loc.empty();
+                if (data && data.locationData) {
+                    for (var i = 0; i < data.locationData.length; i++) {
+                        $loc.append($('<option>', {
+                            value: data.locationData[i].code,
+                            text: data.locationData[i].name
+                        }));
+                    }
+                }
+            }
+        });
+    }
+    // Load locations for the initially selected library
+    loadLocations();
+
+    // --- Form Submit ---
+    $('#ShelfLister').on('submit', function() {
+        startProgress('pg', '<?php echo $progress_id; ?>');
+        $('#loading').addClass('active');
+        return true;
+    });
+});
+
+// ===== Progress Bar =====
+function startProgress(barName, progressId) {
+    console.log("PG Process Started");
+    window._progressId = progressId;
+    setTimeout(function() { progressLoop(barName); }, 2000);
+}
+
+function progressLoop(barName) {
+    console.log("Progress Called");
+    $.ajax({
+        url: "getProgress.php?id=" + window._progressId,
+        cache: false,
+        dataType: "json",
+        success: function(data) {
+            try {
+                var obj = data;
+                var pct = obj.percentage || 0;
+                var job = obj.job || 'Working...';
+
+                // Update the visual progress bar
+                document.getElementById('pg').value = pct;
+                document.getElementById('pg-fill').style.width = pct + '%';
+                document.getElementById('pg-percent').textContent = pct + '%';
+                document.getElementById('progress-job').textContent = job === 'complete' ? 'Finishing up...' : job;
+
+                if (obj.job === "complete") {
+                    document.getElementById('pg-fill').style.width = '100%';
+                    document.getElementById('pg-percent').textContent = '100%';
+                    document.getElementById('progress-job').textContent = 'Loading results...';
+                    // Show results from iframe
+                    var iframe = document.getElementById('process_frame');
+                    var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.length > 0) {
+                        document.open();
+                        document.write(iframeDoc.documentElement.outerHTML);
+                        document.close();
+                    } else {
+                        setTimeout(function() { progressLoop(barName); }, 1000);
+                    }
+                } else {
+                    setTimeout(function() { progressLoop(barName); }, 2000);
+                }
+            } catch(e) {
+                console.log("Progress error: " + e);
+                setTimeout(function() { progressLoop(barName); }, 2000);
+            }
+        },
+        error: function(xhr, status, err) {
+            console.log("pERROR: " + err + " — retrying...");
+            setTimeout(function() { progressLoop(barName); }, 2000);
+        }
+    });
+}
+</script>
+
+</body>
 </html>
