@@ -1,0 +1,9 @@
+.git
+.gitattributes
+.gitignore
+.dockerignore
+tests
+*.md
+phpunit.xml
+composer.lock
+vendor
