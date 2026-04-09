@@ -313,7 +313,7 @@ if (isset($_POST['submit'])) {
         // scan_loc is assigned from the original row key — never from response order.
         foreach ($all_item_data as $scan_row => $itemData) {
                 //If Barcode Not Found Write Scanned Barcode to Item Object So it Will print on report
-                if ($itemData->item_barcode == '')
+                if (!isset($itemData->item_barcode) || $itemData->item_barcode == '')
                 {
                   $itemData->item_barcode = $barcodes_by_row[$scan_row];
                   $itemData->title = 'NOT FOUND';
@@ -425,7 +425,7 @@ if (isset($_POST['submit'])) {
               }elseif ($_POST['cnType'] == 'lc') {
                 $cntype = 0;
               }
-                if ($sortednk[$key]['call_number_type'] != $cntype) {
+                if (($sortednk[$key]['call_number_type'] ?? null) != $cntype) {
                     $cnTypeProblem = "**WRONG CN TYPE**<BR>";
                     $cnTypeProblemCount += 1;
                     $problem = true;
@@ -433,14 +433,14 @@ if (isset($_POST['submit'])) {
                     $cnTypeProblem = '';
                 }
 
-                if ($sortednk[$key]['status'] != 1) {
-                    $nipProblem = "**NIP: " . $sortednk[$key]['process_type'] . "**<BR>";
+                if (($sortednk[$key]['status'] ?? null) != 1) {
+                    $nipProblem = "**NIP: " . ($sortednk[$key]['process_type'] ?? 'Unknown') . "**<BR>";
                     $problem = true;
                 } else {
                     $nipProblem = '';
                 }
 
-                if ($sortednk[$key]['in_temp_location'] != 'false') {
+                if (($sortednk[$key]['in_temp_location'] ?? 'false') != 'false') {
                     $tempProblem = "**IN TEMP LOC**<BR>";
                     $tempProblemCount += 1;
                     $problem = true;
@@ -448,7 +448,7 @@ if (isset($_POST['submit'])) {
                     $tempProblem = '';
                 }
 
-                if ($sortednk[$key]['requested'] != 'false') {
+                if (($sortednk[$key]['requested'] ?? 'false') != 'false') {
                     $requestProblem = "**ITEM HAS REQUEST**<BR>";
                     $requestProblemCount +=1;
                     $problem = true;
@@ -457,16 +457,16 @@ if (isset($_POST['submit'])) {
                 }
 
                 $location = $_POST['location'];
-                if ($sortednk[$key]['location'] != $location) {
-                    $locationProblem = "**WRONG LOCATION: " . $sortednk[$key]['location'] . "**<BR>";
+                if (($sortednk[$key]['location'] ?? '') != $location) {
+                    $locationProblem = "**WRONG LOCATION: " . ($sortednk[$key]['location'] ?? 'Unknown') . "**<BR>";
                     $locationProblemCount += 1;
                     $problem = true;
                 } else {
                     $locationProblem = '';
                 }
                 $library = $_POST['library'];
-                if ($sortednk[$key]['library'] != $library) {
-                    $libraryProblem = "**WRONG LIBRARY: " . $sortednk[$key]['library'] . "**<BR>";
+                if (($sortednk[$key]['library'] ?? '') != $library) {
+                    $libraryProblem = "**WRONG LIBRARY: " . ($sortednk[$key]['library'] ?? 'Unknown') . "**<BR>";
                     $libraryProblemCount += 1;
                     $problem = true;
                 } else {
@@ -474,9 +474,10 @@ if (isset($_POST['submit'])) {
                 }
 
                 $policy = $_POST['policy'];
-                if ($sortednk[$key]['policy'] != $policy) {
-                    if ($sortednk[$key]['policy'] != '') {
-                        $policyProblem = "**WRONG ITEM POLICY: " . $sortednk[$key]['policy'] . "**<BR>";
+                $item_policy = $sortednk[$key]['policy'] ?? '';
+                if ($item_policy != $policy) {
+                    if ($item_policy != '') {
+                        $policyProblem = "**WRONG ITEM POLICY: " . $item_policy . "**<BR>";
                         $policyProblemCount += 1;
                     } else {
                         $policyProblem = "**BLANK I POLICY**<BR>";
@@ -488,9 +489,10 @@ if (isset($_POST['submit'])) {
                 }
 
                 $type = $_POST['itemType'];
-                if ($sortednk[$key]['physical_material_type'] != $type) {
-                    if ($sortednk[$key]['physical_material_type'] != '') {
-                        $typeProblem = "**WRONG TYPE: " . $sortednk[$key]['physical_material_type'] . "**<BR>";
+                $item_material_type = $sortednk[$key]['physical_material_type'] ?? '';
+                if ($item_material_type != $type) {
+                    if ($item_material_type != '') {
+                        $typeProblem = "**WRONG TYPE: " . $item_material_type . "**<BR>";
                         $typeProblemCount +=1;
                     } else {
                         $typeProblem = "**BLANK I TYPE**<BR>";

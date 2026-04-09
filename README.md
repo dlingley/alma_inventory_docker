@@ -11,7 +11,7 @@ For background on the application, see the [Ex Libris Developer Blog post](https
 - Git
 - An Ex Libris Alma API key with **read-only** access to the **Bibs** and **Configuration** APIs
 
-> **Note:** This application runs PHP 8.2 inside the container. No local PHP installation is required.
+> **Note:** This application runs PHP 8.2 inside the container, with full compatibility fixes in place. No local PHP installation is required.
 
 ---
 
@@ -104,12 +104,13 @@ docker compose up --build
 
 ### Running the tests
 
-The project uses [PHPUnit](https://phpunit.de/). Install dependencies and run the test suite:
+A standalone regression test suite validates the complex Dewey and LC call number sorting logic:
 
 ```bash
-composer install
-./vendor/bin/phpunit
+docker compose exec app php test_sort.php
 ```
+
+If you modify `SortCallNumber.php`, always rely on `test_sort.php` to ensure you haven't introduced regressions in volume subpart parsing (e.g. `t.2:bk.1`) or case-sensitive cutter logic.
 
 ### Production deployment
 

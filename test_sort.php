@@ -17,15 +17,22 @@ $all_pass = true;
 
 echo "=== Test 1: Volume number sorting ===\n";
 $volume_tests = [
-    '867 P69A t.1', '867 P69A t.2', '867 P69A t.3',
-    '867 P69A t.9', '867 P69A t.10', '867 P69A t.11',
-    '867 P69A t.19', '867 P69A t.20', '867 P69A t.25',
+    '867 P69A t.1',
+    '867 P69A t.2',
+    '867 P69A t.3',
+    '867 P69A t.9',
+    '867 P69A t.10',
+    '867 P69A t.11',
+    '867 P69A t.19',
+    '867 P69A t.20',
+    '867 P69A t.25',
 ];
 $shuffled = $volume_tests;
 shuffle($shuffled);
 usort($shuffled, 'SortDewey');
 echo "Result:\n";
-foreach ($shuffled as $i => $cn) echo "  " . ($i+1) . ". $cn\n";
+foreach ($shuffled as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
 $pass1 = ($shuffled === $volume_tests);
 echo ($pass1 ? "✅ PASS" : "❌ FAIL") . "\n\n";
 $all_pass = $all_pass && $pass1;
@@ -42,7 +49,8 @@ $shuffled3 = $class_tests;
 shuffle($shuffled3);
 usort($shuffled3, 'SortDewey');
 echo "Result:\n";
-foreach ($shuffled3 as $i => $cn) echo "  " . ($i+1) . ". $cn\n";
+foreach ($shuffled3 as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
 $pass2 = ($shuffled3 === $class_tests);
 echo ($pass2 ? "✅ PASS" : "❌ FAIL") . "\n\n";
 $all_pass = $all_pass && $pass2;
@@ -58,7 +66,8 @@ $shuffled4 = $case_tests;
 shuffle($shuffled4);
 usort($shuffled4, 'SortDewey');
 echo "Result:\n";
-foreach ($shuffled4 as $i => $cn) echo "  " . ($i+1) . ". $cn\n";
+foreach ($shuffled4 as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
 $pass3 = ($shuffled4 === $case_tests);
 echo ($pass3 ? "✅ PASS" : "❌ FAIL") . "\n";
 echo "Normalized keys:\n";
@@ -82,7 +91,8 @@ $shuffled5 = $cutter_tests;
 shuffle($shuffled5);
 usort($shuffled5, 'SortDewey');
 echo "Result:\n";
-foreach ($shuffled5 as $i => $cn) echo "  " . ($i+1) . ". $cn\n";
+foreach ($shuffled5 as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
 $pass4 = ($shuffled5 === $cutter_tests);
 echo ($pass4 ? "✅ PASS" : "❌ FAIL") . "\n";
 echo "Normalized keys:\n";
@@ -115,10 +125,57 @@ $shuffled6 = $full_tests;
 shuffle($shuffled6);
 usort($shuffled6, 'SortDewey');
 echo "Result:\n";
-foreach ($shuffled6 as $i => $cn) echo "  " . ($i+1) . ". $cn\n";
+foreach ($shuffled6 as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
 $pass5 = ($shuffled6 === $full_tests);
 echo ($pass5 ? "✅ PASS" : "❌ FAIL") . "\n\n";
 $all_pass = $all_pass && $pass5;
 
-echo "========================================\n";
+echo "=== Pairwise sort order tests ===\n";
+$colon_pair_tests = [
+    ["866.09 N75n t.2:bk.1", "866.09 N75n t.3"],
+    ["868.03 P191d t.1:pt.1-2", "868.03 P191d t.2"],
+    ["868.03 P191d t.1:pt.1", "868.03 P191d t.1:pt.2"],
+    ["865.09 An13 v.44:iss.1 2019", "865.09 An13 v.44:iss.2 2019"],
+    ["865.09 An13 v.44:iss.1 2019", "865.09 An13 v.45:iss.1 2020"],
+    ["866.09 N75n t.2", "866.09 N75n t.2:bk.1"],
+    ["866.09 N75n t.2:bk.1", "866.09 N75n t.2:bk.2"],
+];
+
+foreach ($colon_pair_tests as $pair) {
+    $earlier = $pair[0];
+    $later = $pair[1];
+    $n_early = normalizeDewey($earlier);
+    $n_later = normalizeDewey($later);
+    $passed = strcmp($n_early, $n_later) < 0;
+    $status = $passed ? "✅ PASS" : "❌ FAIL";
+    echo "  $status: '$earlier' < '$later'\n";
+    if (!$passed) {
+        echo "         got: $n_early\n";
+        echo "          vs: $n_later\n";
+    }
+    $all_pass = $all_pass && $passed;
+}
+
+echo "\n=== Padding consistency tests ===\n";
+$pairs = [
+    ["866.09 N75n t.2:bk.1", "866.09 N75n t.10:bk.1"],
+    ["868.03 P191d t.1:pt.2", "868.03 P191d t.1:pt.10"],
+];
+foreach ($pairs as $pair) {
+    $earlier = $pair[0];
+    $later = $pair[1];
+    $n_early = normalizeDewey($earlier);
+    $n_later = normalizeDewey($later);
+    $passed = strcmp($n_early, $n_later) < 0;
+    $status = $passed ? "✅ PASS" : "❌ FAIL";
+    echo "  $status: '$earlier' < '$later'\n";
+    if (!$passed) {
+        echo "         got: $n_early\n";
+        echo "          vs: $n_later\n";
+    }
+    $all_pass = $all_pass && $passed;
+}
+
+echo "\n========================================\n";
 echo ($all_pass ? "✅ ALL TESTS PASSED!" : "❌ SOME TESTS FAILED") . "\n";

@@ -17,9 +17,11 @@ function SortLC($right, $left)
  *********************************************************************/
 function SortLCObject($right, $left)
 {
-    $right = NormalizeLC($right["call_number"]);
-    $left = NormalizeLC($left["call_number"]);
-    return (strcmp($right, $left));
+    $right_cn = $right["call_number"] ?? "";
+    $left_cn = $left["call_number"] ?? "";
+    $right_norm = NormalizeLC($right_cn);
+    $left_norm = NormalizeLC($left_cn);
+    return (strcmp($right_norm, $left_norm));
 } // end SortLC
 /*********************************************************************
  *  NormalizeLC
@@ -107,119 +109,123 @@ function NormalizeLC($lc_call_no_orig)
 
 //an adaptation of Koha's Dewey sort routine
 //GPL info goes here
-		//problem call numbers
-		/*
-		709.04 M453
-	  704.94978 S727
-		759.06 E96
-		759.1H766
-		759.1N
-		*/
-		//759.06 E96 should display as 759_060000000000000_E96
-		//$callNum = '759.06 E96';
+//problem call numbers
+/*
+709.04 M453
+704.94978 S727
+759.06 E96
+759.1H766
+759.1N
+*/
+//759.06 E96 should display as 759_060000000000000_E96
+//$callNum = '759.06 E96';
 
-		/*********************************************************************
-		 * SortDeweyObject  Takes in two Obects contaning Dewey Call # elements
-     * defined as call_number, normalizes, then sorts them
-     * Can use usort or uasort to sort arrays based on the call number
-		 *********************************************************************/
-     /*********************************************************************
-      * SortDewey Takes in two Dewey Call #'s, Normalizes, then sorts them
-      * Can use usort or uasort to sort arrays based on the call number
-      *********************************************************************/
-     function SortDewey($right, $left)
-     {
-         $right = normalizeDewey($right);
-         $left = normalizeDewey($left);
-         return (strcmp($right, $left));
-     } // end SortLC
-     /*********************************************************************/
+/*********************************************************************
+ * SortDeweyObject  Takes in two Obects contaning Dewey Call # elements
+ * defined as call_number, normalizes, then sorts them
+ * Can use usort or uasort to sort arrays based on the call number
+ *********************************************************************/
+/*********************************************************************
+ * SortDewey Takes in two Dewey Call #'s, Normalizes, then sorts them
+ * Can use usort or uasort to sort arrays based on the call number
+ *********************************************************************/
+function SortDewey($right, $left)
+{
+    $right = normalizeDewey($right);
+    $left = normalizeDewey($left);
+    return (strcmp($right, $left));
+} // end SortLC
+/*********************************************************************/
 
-		function SortDeweyObject($right, $left)
-		{
-		    $right = normalizeDewey($right["call_number"]);
-		    $left = normalizeDewey($left["call_number"]);
-		    return (strcmp($right, $left));
-		} // end SortLC
+function SortDeweyObject($right, $left)
+{
+    $right_cn = $right["call_number"] ?? "";
+    $left_cn = $left["call_number"] ?? "";
+    $right_norm = normalizeDewey($right_cn);
+    $left_norm = normalizeDewey($left_cn);
+    return (strcmp($right_norm, $left_norm));
+} // end SortLC
 
-	function normalizeDewey($callNum){
-        //Insert ! when any letter comes after number (case-insensitive)
-        $init = preg_replace('/([0-9])(?=[a-zA-Z])/','$1!', $callNum);
-		//make all characters lowercase... sort works better this way for dewey...
-		$init = strtolower($init);
-		//get rid of leading whitespace
-		$init = preg_replace('/^\s+/', '', $init);
-		//get rid of extra whitespace at end of string
-		$init = preg_replace('/\s+$/', '', $init);
-		//get rid of &nbsp; at end of string
-		$init = preg_replace('/\&/', '', $init);
-	    //remove any slashes
-		$init = preg_replace('/\//', '', $init);
-		//remove any backslashes
-		$init = stripslashes($init);
-		// replace newline characters
-		$init = preg_replace('/\n/','', $init);
+function normalizeDewey($callNum)
+{
+    //Insert ! when any letter comes after number (case-insensitive)
+    $init = preg_replace('/([0-9])(?=[a-zA-Z])/', '$1!', $callNum);
+    //make all characters lowercase... sort works better this way for dewey...
+    $init = strtolower($init);
+    //get rid of leading whitespace
+    $init = preg_replace('/^\s+/', '', $init);
+    //get rid of extra whitespace at end of string
+    $init = preg_replace('/\s+$/', '', $init);
+    //get rid of &nbsp; at end of string
+    $init = preg_replace('/\&/', '', $init);
+    //remove any slashes
+    $init = preg_replace('/\//', '', $init);
+    //remove any backslashes
+    $init = stripslashes($init);
+    // replace newline characters
+    $init = preg_replace('/\n/', '', $init);
 
-		//set digit group count
-		$digit_group_count = 0;
-		//declare first digit group index variable
-		$first_digit_group_idx;
+    //set digit group count
+    $digit_group_count = 0;
+    //declare first digit group index variable
+    $first_digit_group_idx = null;
 
-		//split string into tokens by . or space
-		$tokens = preg_split( '/\.|\s+/', $init);
+    //split string into tokens by ., :, or space
+    $tokens = preg_split('/[\.:\s]+/', $init);
 
-		//loop through the tokens
-		for($i=0;$i<sizeof($tokens);$i++){
-			//if the token begins and ends with digits
-			if(preg_match("/^\d+$/", $tokens[$i])){
-				//increment the number of digit groups
-				$digit_group_count++;
-				//if it's the first one, store its index in first_digit_group_idx
-				if (1 == $digit_group_count) {
+    //loop through the tokens
+    for ($i = 0; $i < sizeof($tokens); $i++) {
+        //if the token begins and ends with digits
+        if (preg_match("/^\d+$/", $tokens[$i])) {
+            //increment the number of digit groups
+            $digit_group_count++;
+            //if it's the first one, store its index in first_digit_group_idx
+            if (1 == $digit_group_count) {
                 $first_digit_group_idx = $i;
             }
-        //if there is a second group of digits, expand it to 15 places, adding 0s
-        if (2 == $digit_group_count) {
-            if ($i - $first_digit_group_idx == 1) {
+            //if there is a second group of digits, expand it to 15 places, adding 0s
+            if (2 == $digit_group_count) {
+                if ($i - $first_digit_group_idx == 1) {
                     $tokens[$i] = str_pad($tokens[$i], 15, "0", STR_PAD_RIGHT);
                     //$tokens[$i] =~ tr/ /0/;
                 } else {
-                $tokens[$first_digit_group_idx] .= '_000000000000000';
-              }
+                    $tokens[$first_digit_group_idx] .= '_000000000000000';
+                }
             }
-			}
+        }
 
-		}
+    }
 
-		if (1 == $digit_group_count) {
+    if (1 == $digit_group_count) {
         $tokens[$first_digit_group_idx] .= '_000000000000000';
     }
 
-		// Pad the numeric portion of cutter tokens (already lowercased, e.g. "n857" -> "n857000000000000")
-		// so that cutter numbers are treated as decimal fractions.
-		// Without this, "n8576" would sort before "n857" because the underscore
-		// separator following "n857" has a higher ASCII value than the digit "6".
-		$token_count = count($tokens);
-		for ($i = 0; $i < $token_count; $i++) {
-			if (preg_match('/^([a-z!]+)(\d+)(.*)$/', $tokens[$i], $m)) {
-				$tokens[$i] = $m[1] . str_pad($m[2], 15, "0", STR_PAD_RIGHT) . $m[3];
-			}
-		}
+    // Pad the numeric portion of cutter tokens (already lowercased, e.g. "n857" -> "n857000000000000")
+    // so that cutter numbers are treated as decimal fractions.
+    // Without this, "n8576" would sort before "n857" because the underscore
+    // separator following "n857" has a higher ASCII value than the digit "6".
+    $token_count = count($tokens);
+    for ($i = 0; $i < $token_count; $i++) {
+        if (preg_match('/^([a-z!]+)(\d+)(.*)$/', $tokens[$i], $m)) {
+            $tokens[$i] = $m[1] . str_pad($m[2], 15, "0", STR_PAD_RIGHT) . $m[3];
+        }
+    }
 
-		// Left-pad remaining purely numeric tokens (e.g. volume numbers: t.1, t.10)
-		// so that they sort numerically in string comparisons.
-		// Skip the first digit group (the Dewey class number) — it's already handled
-		// by the digit_group_count logic above and must not be reformatted.
-		$token_count2 = count($tokens);
-		for ($i = 0; $i < $token_count2; $i++) {
-			if (isset($first_digit_group_idx) && $i === $first_digit_group_idx) continue;
-			if (preg_match('/^\d+$/', $tokens[$i]) && strlen($tokens[$i]) < 10) {
-				$tokens[$i] = str_pad($tokens[$i], 10, "0", STR_PAD_LEFT);
-			}
-		}
+    // Left-pad remaining purely numeric tokens (e.g. volume numbers: t.1, t.10)
+    // so that they sort numerically in string comparisons.
+    // Skip the first digit group (the Dewey class number) — it's already handled
+    // by the digit_group_count logic above and must not be reformatted.
+    $token_count2 = count($tokens);
+    for ($i = 0; $i < $token_count2; $i++) {
+        if (isset($first_digit_group_idx) && $i === $first_digit_group_idx)
+            continue;
+        if (preg_match('/^\d+$/', $tokens[$i]) && strlen($tokens[$i]) < 10) {
+            $tokens[$i] = str_pad($tokens[$i], 10, "0", STR_PAD_LEFT);
+        }
+    }
 
     $key = implode("_", $tokens);
-		return $key;
-	}
+    return $key;
+}
 
 ?>

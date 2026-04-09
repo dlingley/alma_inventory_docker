@@ -2,8 +2,8 @@
 
 require("key.php");
 
-// set the Caching Frequency - neverExpire, Daily, Hourly or None (No Caching) (recommended default: Daily)
-if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
+// set the Caching Frequency - neverExpire, Weekly, Daily, Hourly or None (No Caching) (recommended default: Weekly)
+if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');
 /*********************************************************************
  * SortLC
  *********************************************************************/
@@ -31,6 +31,9 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
                      break;
                  case 'Daily':
                      if (filemtime("cache/barcodes/" . $barcode . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
+                     break;
+                 case 'Weekly':
+                     if (filemtime("cache/barcodes/" . $barcode . ".xml") < strtotime("-7 days")) $cache_expired = true;
                      break;
                  default:
                      if(filemtime("cache/barcodes/". $barcode .".xml") < strtotime(date("Y-m-d 00:00:00",strtotime("now")))) $cache_expired = true;
@@ -160,6 +163,9 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Daily');
                          break;
                      case 'Daily':
                          if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
+                         break;
+                     case 'Weekly':
+                         if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime("-7 days")) $cache_expired = true;
                          break;
                      default:
                          if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
