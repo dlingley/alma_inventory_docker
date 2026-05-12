@@ -6,9 +6,14 @@ require("key.php");
 $lib_id = isset($_GET['lib_id']) ? $_GET['lib_id'] : '';
 // For setup/debugging, you can temporarily hardcode a library id here (example: 'hsse').
 // $lib_id = 'hsse';
-if ($lib_id === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $lib_id)) {
+if ($lib_id === '') {
 	http_response_code(400);
-	echo json_encode(array('error' => 'Missing or invalid lib_id'));
+	echo json_encode(array('error' => 'Missing lib_id'));
+	exit;
+}
+if (!preg_match('/^[A-Za-z0-9_-]+$/', $lib_id)) {
+	http_response_code(400);
+	echo json_encode(array('error' => 'Invalid lib_id. Allowed characters: letters, numbers, underscore, hyphen.'));
 	exit;
 }
 $ch = curl_init();
