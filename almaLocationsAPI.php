@@ -4,7 +4,7 @@ require("key.php");
 //require("login.php");
 
 $lib_id = isset($_GET['lib_id']) ? $_GET['lib_id'] : '';
-// For setup/debugging, you can temporarily hardcode a library id here (example: 'hsse').
+// For setup/debugging, you can temporarily hardcode a library ID here (example: 'hsse').
 // $lib_id = 'hsse';
 if ($lib_id === '') {
 	http_response_code(400);
