@@ -6,6 +6,11 @@ require("key.php");
 $lib_id = isset($_GET['lib_id']) ? $_GET['lib_id'] : '';
 // For setup/debugging, you can temporarily hardcode a library id here (example: 'hsse').
 // $lib_id = 'hsse';
+if ($lib_id === '' || !preg_match('/^[A-Za-z0-9_-]+$/', $lib_id)) {
+	http_response_code(400);
+	echo json_encode(array('error' => 'Missing or invalid lib_id'));
+	exit;
+}
 $ch = curl_init();
 $url = 'https://api-na.hosted.exlibrisgroup.com/almaws/v1/conf/libraries/' . urlencode($lib_id) . '/locations';
 $queryParams = '?' . urlencode('lang') . '=' . urlencode('en') . '&' . urlencode('apikey') . '=' . ALMA_SHELFLIST_API_KEY;
