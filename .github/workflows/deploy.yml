@@ -14,7 +14,7 @@ env:
 jobs:
   build-and-push:
     name: Build image and push to Harbor
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     outputs:
       registry: ${{ steps.registry.outputs.registry }}
@@ -55,7 +55,7 @@ jobs:
 
   deploy:
     name: Deploy to Kubernetes
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: build-and-push
 
     steps:
