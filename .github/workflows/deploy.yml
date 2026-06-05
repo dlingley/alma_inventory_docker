@@ -26,16 +26,16 @@ jobs:
 
       - name: Set registry and tag based on branch
         id: registry
-        shell: bash
+        shell: pwsh
         run: |
-          if [ "${{ github.ref_name }}" == "production" ]; then
-            echo "registry=${{ env.PROD_REGISTRY }}" >> $GITHUB_OUTPUT
-            echo "environment=prod" >> $GITHUB_OUTPUT
-          else
-            echo "registry=${{ env.NONPROD_REGISTRY }}" >> $GITHUB_OUTPUT
-            echo "environment=nonprod" >> $GITHUB_OUTPUT
-          fi
-          echo "image_tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          if ("${{ github.ref_name }}" -eq "production") {
+            "registry=${{ env.PROD_REGISTRY }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "environment=prod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "registry=${{ env.NONPROD_REGISTRY }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "environment=nonprod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          "image_tag=${{ github.sha }}" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
       - name: Log in to Harbor
         uses: docker/login-action@v3
@@ -65,41 +65,42 @@ jobs:
 
       - name: Set environment variables
         id: env
-        shell: bash
+        shell: pwsh
         run: |
-          if [ "${{ github.ref_name }}" == "production" ]; then
-            echo "environment=prod" >> $GITHUB_OUTPUT
-            echo "kubeconfig_secret=KUBECONFIG_PROD" >> $GITHUB_OUTPUT
-          else
-            echo "environment=nonprod" >> $GITHUB_OUTPUT
-            echo "kubeconfig_secret=KUBECONFIG_NONPROD" >> $GITHUB_OUTPUT
-          fi
+          if ("${{ github.ref_name }}" -eq "production") {
+            "environment=prod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "kubeconfig_secret=KUBECONFIG_PROD" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "environment=nonprod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "kubeconfig_secret=KUBECONFIG_NONPROD" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
 
       - name: Configure kubeconfig
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p ~/.kube
-          echo "${{ secrets[steps.env.outputs.kubeconfig_secret] }}" > ~/.kube/config
-          chmod 600 ~/.kube/config
+          New-Item -ItemType Directory -Force -Path "$HOME\.kube" | Out-Null
+          [System.IO.File]::WriteAllText("$HOME\.kube\config", "${{ secrets[steps.env.outputs.kubeconfig_secret] }}")
+          icacls "$HOME\.kube\config" /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
 
       - name: Update image tag in manifest
-        shell: bash
+        shell: pwsh
         run: |
           # Swap the :latest placeholder in the manifest with the exact git SHA tag
-          sed -i "s|IMAGE_TAG_PLACEHOLDER|${{ needs.build-and-push.outputs.image_tag }}|g" \
-            k8s/${{ steps.env.outputs.environment }}/deployment.yaml
+          $file = "k8s/${{ steps.env.outputs.environment }}/deployment.yaml"
+          (Get-Content $file) -replace "IMAGE_TAG_PLACEHOLDER", "${{ needs.build-and-push.outputs.image_tag }}" |
+            Set-Content $file
 
       - name: Apply Kubernetes manifests
-        shell: bash
+        shell: pwsh
         run: |
           kubectl apply -f k8s/${{ steps.env.outputs.environment }}/
 
       - name: Wait for rollout to complete
-        shell: bash
+        shell: pwsh
         run: |
-          kubectl rollout status deployment/lib-inventory \
-            -n lib-inventory-${{ steps.env.outputs.environment }} \
+          kubectl rollout status deployment/lib-inventory `
+            -n lib-inventory-${{ steps.env.outputs.environment }} `
             --timeout=120s
