@@ -69,20 +69,31 @@ jobs:
         run: |
           if ("${{ github.ref_name }}" -eq "production") {
             "environment=prod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "kubeconfig_secret=KUBECONFIG_PROD" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           } else {
             "environment=nonprod" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "kubeconfig_secret=KUBECONFIG_NONPROD" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
 
-      - name: Configure kubeconfig
+      - name: Configure kubeconfig (prod)
+        if: ${{ steps.env.outputs.environment == 'prod' }}
         shell: pwsh
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_PROD }}
         run: |
           New-Item -ItemType Directory -Force -Path "$HOME\.kube" | Out-Null
-          [System.IO.File]::WriteAllText("$HOME\.kube\config", "${{ secrets[steps.env.outputs.kubeconfig_secret] }}")
+          [System.IO.File]::WriteAllText("$HOME\.kube\config", $env:KUBECONFIG_CONTENT)
+          icacls "$HOME\.kube\config" /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
+
+      - name: Configure kubeconfig (nonprod)
+        if: ${{ steps.env.outputs.environment == 'nonprod' }}
+        shell: pwsh
+        env:
+          KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_NONPROD }}
+        run: |
+          New-Item -ItemType Directory -Force -Path "$HOME\.kube" | Out-Null
+          [System.IO.File]::WriteAllText("$HOME\.kube\config", $env:KUBECONFIG_CONTENT)
           icacls "$HOME\.kube\config" /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
 
       - name: Update image tag in manifest
