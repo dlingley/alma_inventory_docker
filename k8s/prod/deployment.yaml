@@ -1,0 +1,109 @@
+# ============================================================
+# Prod Kubernetes Manifests — lib-inventory
+# Apply with: kubectl apply -f k8s/prod/
+# ============================================================
+
+# --- Namespace ---
+# Purdue IT may have already created this — if "kubectl apply"
+# complains the namespace exists, just delete this section.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lib-inventory-prod
+
+---
+
+# --- Secret ---
+# Same as nonprod — create this manually in Rancher (one time only):
+#   Rancher UI > your project > More Resources > Core > Secrets
+#   Name: lib-inventory-api-secret  |  Namespace: lib-inventory-prod
+#   Key: ALMA_SHELFLIST_API_KEY  |  Value: <your actual API key>
+# DO NOT paste your API key into this file or commit it to git.
+
+---
+
+# --- Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lib-inventory
+  namespace: lib-inventory-prod
+  labels:
+    app: lib-inventory
+    env: prod
+spec:
+  replicas: 2   # 2 replicas in prod for basic redundancy
+  selector:
+    matchLabels:
+      app: lib-inventory
+  template:
+    metadata:
+      labels:
+        app: lib-inventory
+        env: prod
+    spec:
+      containers:
+        - name: lib-inventory
+          # GitHub Actions replaces IMAGE_TAG_PLACEHOLDER with the git SHA on each deploy
+          image: image-registry.it.purdue.edu/lib-inventory/lib-inventory:IMAGE_TAG_PLACEHOLDER
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          env:
+            - name: ALMA_SHELFLIST_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: lib-inventory-api-secret
+                  key: ALMA_SHELFLIST_API_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+      imagePullSecrets:
+        - name: harbor-prod-secret
+
+---
+
+# --- Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lib-inventory
+  namespace: lib-inventory-prod
+spec:
+  selector:
+    app: lib-inventory
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+
+---
+
+# --- Ingress ---
+# DNS: inventory.lib.purdue.edu → k8sds1.it.purdue.edu
+# Leave commented out until IT confirms DNS is live,
+# then uncomment and apply.
+#
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: lib-inventory
+#   namespace: lib-inventory-prod
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+# spec:
+#   rules:
+#     - host: inventory.lib.purdue.edu
+#       http:
+#         paths:
+#           - path: /
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: lib-inventory
+#                 port:
+#                   number: 80
