@@ -1,6 +1,6 @@
 # alma_inventory_docker
 
-Alma Inventory API application that can be launched using Docker on Mac, Linux, or Windows.  
+Alma Inventory API application that can be launched using Docker on Mac, Linux, or Windows.   
 For background on the application, see the [Ex Libris Developer Blog post](https://developers.exlibrisgroup.com/blog/Shelf-Inventory-using-Alma-APIs).
 
 ---
