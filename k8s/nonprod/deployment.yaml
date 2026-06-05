@@ -95,7 +95,7 @@ metadata:
   name: lib-inventory
   namespace: lib-inventory-nonprod
   annotations:
-    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.class: "traefik"
 spec:
   rules:
     - host: dev-inventory.lib.purdue.edu
