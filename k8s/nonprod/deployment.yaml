@@ -3,16 +3,6 @@
 # Apply with: kubectl apply -f k8s/nonprod/
 # ============================================================
 
-# --- Namespace ---
-# Purdue IT may have already created this — if "kubectl apply"
-# complains the namespace exists, just delete this section.
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: lib-inventory-nonprod
-
----
-
 # --- Secret ---
 # The API key is NOT stored here — this is just a reference shell.
 # You create the actual secret manually in Rancher (one time only):
