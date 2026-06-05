@@ -107,7 +107,7 @@ jobs:
       - name: Apply Kubernetes manifests
         shell: pwsh
         run: |
-          kubectl apply -f k8s/${{ steps.env.outputs.environment }}/
+          kubectl apply --server-side -f k8s/${{ steps.env.outputs.environment }}/
 
       - name: Wait for rollout to complete
         shell: pwsh
