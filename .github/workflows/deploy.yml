@@ -26,6 +26,7 @@ jobs:
 
       - name: Set registry and tag based on branch
         id: registry
+        shell: bash
         run: |
           if [ "${{ github.ref_name }}" == "production" ]; then
             echo "registry=${{ env.PROD_REGISTRY }}" >> $GITHUB_OUTPUT
@@ -64,6 +65,7 @@ jobs:
 
       - name: Set environment variables
         id: env
+        shell: bash
         run: |
           if [ "${{ github.ref_name }}" == "production" ]; then
             echo "environment=prod" >> $GITHUB_OUTPUT
@@ -77,22 +79,26 @@ jobs:
         uses: azure/setup-kubectl@v3
 
       - name: Configure kubeconfig
+        shell: bash
         run: |
           mkdir -p ~/.kube
           echo "${{ secrets[steps.env.outputs.kubeconfig_secret] }}" > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Update image tag in manifest
+        shell: bash
         run: |
           # Swap the :latest placeholder in the manifest with the exact git SHA tag
           sed -i "s|IMAGE_TAG_PLACEHOLDER|${{ needs.build-and-push.outputs.image_tag }}|g" \
             k8s/${{ steps.env.outputs.environment }}/deployment.yaml
 
       - name: Apply Kubernetes manifests
+        shell: bash
         run: |
           kubectl apply -f k8s/${{ steps.env.outputs.environment }}/
 
       - name: Wait for rollout to complete
+        shell: bash
         run: |
           kubectl rollout status deployment/lib-inventory \
             -n lib-inventory-${{ steps.env.outputs.environment }} \
