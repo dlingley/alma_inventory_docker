@@ -89,26 +89,22 @@ spec:
 # --- Ingress ---
 # Exposes the app at a public hostname.
 # DNS: dev-inventory.lib.purdue.edu → dev.k8sds1.it.purdue.edu
-# Leave this section commented out until IT confirms DNS is live,
-# then uncomment and apply.
-#
-# apiVersion: networking.k8s.io/v1
-# kind: Ingress
-# metadata:
-#   name: lib-inventory
-#   namespace: lib-inventory-nonprod
-#   annotations:
-#     # Ask IT which ingress class Purdue's cluster uses (usually "nginx")
-#     kubernetes.io/ingress.class: "nginx"
-# spec:
-#   rules:
-#     - host: dev-inventory.lib.purdue.edu
-#       http:
-#         paths:
-#           - path: /
-#             pathType: Prefix
-#             backend:
-#               service:
-#                 name: lib-inventory
-#                 port:
-#                   number: 80
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lib-inventory
+  namespace: lib-inventory-nonprod
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+    - host: dev-inventory.lib.purdue.edu
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: lib-inventory
+                port:
+                  number: 80
