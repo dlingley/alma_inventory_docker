@@ -2,6 +2,8 @@
 .gitattributes
 .gitignore
 .dockerignore
+.env
+docker-compose.yml
 tests
 *.md
 phpunit.xml
