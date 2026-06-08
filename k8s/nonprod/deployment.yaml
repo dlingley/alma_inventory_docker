@@ -55,6 +55,12 @@ spec:
                 secretKeyRef:
                   name: lib-inventory-api-secret
                   key: ALMA_SHELFLIST_API_KEY
+            - name: HTTP_PROXY
+              value: "http://proxy.itap.purdue.edu:3128"
+            - name: HTTPS_PROXY
+              value: "http://proxy.itap.purdue.edu:3128"
+            - name: NO_PROXY
+              value: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
           resources:
             requests:
               memory: "128Mi"
