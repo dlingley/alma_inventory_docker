@@ -1,14 +1,13 @@
-Prod deployment · YAML
 # ============================================================
-# Prod Kubernetes Manifests — lib-inventory
+# Prod Kubernetes Manifests - lib-inventory
 # Apply with: kubectl apply --server-side -f k8s/prod/
 # ============================================================
- 
+
 # --- Secret ---
 # Created manually in Rancher (one time only), NOT stored in git:
 #   Namespace: lib-inventory-prod
 #   Name: lib-inventory-api-secret
-#   Key: ALMA_SHELFLIST_API_KEY  |  Value: <your actual API key>
+#   Key: ALMA_SHELFLIST_API_KEY  |  Value: your actual API key
 #
 # Also requires a Harbor image pull secret, created via kubectl:
 #   kubectl create secret docker-registry harbor-prod-secret \
@@ -16,9 +15,9 @@ Prod deployment · YAML
 #     --docker-server=image-registry.it.purdue.edu \
 #     --docker-username=YOUR_PURDUE_USERNAME \
 #     --docker-password=YOUR_HARBOR_CLI_SECRET
- 
+
 ---
- 
+
 # --- Deployment ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,7 +28,7 @@ metadata:
     app: lib-inventory
     env: prod
 spec:
-  replicas: 2   # 2 replicas in prod for basic redundancy
+  replicas: 2
   selector:
     matchLabels:
       app: lib-inventory
@@ -41,7 +40,6 @@ spec:
     spec:
       containers:
         - name: lib-inventory
-          # GitHub Actions replaces IMAGE_TAG_PLACEHOLDER with the git SHA on each deploy
           image: image-registry.it.purdue.edu/lib-inventory/lib-inventory:IMAGE_TAG_PLACEHOLDER
           imagePullPolicy: Always
           ports:
@@ -76,9 +74,9 @@ spec:
               cpu: "250m"
       imagePullSecrets:
         - name: harbor-prod-secret
- 
+
 ---
- 
+
 # --- Service ---
 apiVersion: v1
 kind: Service
@@ -92,10 +90,11 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
- 
+
 ---
+
 # --- Ingress ---
-# DNS: inventory.lib.purdue.edu → k8sds1.it.purdue.edu
+# DNS: inventory.lib.purdue.edu points to k8sds1.it.purdue.edu
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
