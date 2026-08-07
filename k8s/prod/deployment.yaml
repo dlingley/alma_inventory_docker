@@ -1,17 +1,24 @@
+Prod deployment · YAML
 # ============================================================
 # Prod Kubernetes Manifests — lib-inventory
-# Apply with: kubectl apply -f k8s/prod/
+# Apply with: kubectl apply --server-side -f k8s/prod/
 # ============================================================
-
+ 
 # --- Secret ---
-# Same as nonprod — create this manually in Rancher (one time only):
-#   Rancher UI > your project > More Resources > Core > Secrets
-#   Name: lib-inventory-api-secret  |  Namespace: lib-inventory-prod
+# Created manually in Rancher (one time only), NOT stored in git:
+#   Namespace: lib-inventory-prod
+#   Name: lib-inventory-api-secret
 #   Key: ALMA_SHELFLIST_API_KEY  |  Value: <your actual API key>
-# DO NOT paste your API key into this file or commit it to git.
-
+#
+# Also requires a Harbor image pull secret, created via kubectl:
+#   kubectl create secret docker-registry harbor-prod-secret \
+#     --namespace=lib-inventory-prod \
+#     --docker-server=image-registry.it.purdue.edu \
+#     --docker-username=YOUR_PURDUE_USERNAME \
+#     --docker-password=YOUR_HARBOR_CLI_SECRET
+ 
 ---
-
+ 
 # --- Deployment ---
 apiVersion: apps/v1
 kind: Deployment
@@ -39,12 +46,27 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 33
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
           env:
             - name: ALMA_SHELFLIST_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: lib-inventory-api-secret
                   key: ALMA_SHELFLIST_API_KEY
+            - name: HTTP_PROXY
+              value: "http://proxy.itap.purdue.edu:3128"
+            - name: HTTPS_PROXY
+              value: "http://proxy.itap.purdue.edu:3128"
+            - name: NO_PROXY
+              value: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
           resources:
             requests:
               memory: "128Mi"
@@ -54,9 +76,9 @@ spec:
               cpu: "250m"
       imagePullSecrets:
         - name: harbor-prod-secret
-
+ 
 ---
-
+ 
 # --- Service ---
 apiVersion: v1
 kind: Service
@@ -70,13 +92,14 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
-
+ 
 ---
-
+ 
 # --- Ingress ---
 # DNS: inventory.lib.purdue.edu → k8sds1.it.purdue.edu
-# Leave commented out until IT confirms DNS is live,
-# then uncomment and apply.
+# Leave commented out until DNS is confirmed live, then uncomment
+# (remove the leading '#' from every line below) and push to the
+# production branch.
 #
 # apiVersion: networking.k8s.io/v1
 # kind: Ingress
@@ -84,7 +107,7 @@ spec:
 #   name: lib-inventory
 #   namespace: lib-inventory-prod
 #   annotations:
-#     kubernetes.io/ingress.class: "nginx"
+#     kubernetes.io/ingress.class: "traefik"
 # spec:
 #   rules:
 #     - host: inventory.lib.purdue.edu
