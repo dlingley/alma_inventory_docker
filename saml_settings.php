@@ -4,9 +4,11 @@
  * All configuration parameters are retrieved from environment variables (getenv()).
  */
 
+use OneLogin\Saml2\Utils;
+
 function getSamlSettings() {
-    $spEntityId = getenv('SAML_SP_ENTITY_ID') ?: 'http://localhost:8080/saml/metadata';
-    $spAcsUrl   = getenv('SAML_SP_ACS_URL') ?: 'http://localhost:8080/saml/acs';
+    $spEntityId = getenv('SAML_SP_ENTITY_ID') ?: 'https://localhost:8443/saml/metadata';
+    $spAcsUrl   = getenv('SAML_SP_ACS_URL') ?: 'https://localhost:8443/saml/acs';
     
     $idpEntityId = getenv('SAML_IDP_ENTITY_ID') ?: 'https://idp.purdue.edu/entity';
     $idpSsoUrl   = getenv('SAML_IDP_SSO_URL') ?: 'https://login.openathens.net/saml/2/sso/purdue.edu';
@@ -14,14 +16,15 @@ function getSamlSettings() {
     $certPath = getenv('SAML_IDP_CERT_PATH') ?: '/srv/app/keys/idp.crt';
     $idpCert = '';
     if (file_exists($certPath)) {
-        $idpCert = file_get_contents($certPath);
+        $rawCert = file_get_contents($certPath);
+        $idpCert = Utils::formatCert($rawCert);
     }
 
     $spCertPath = getenv('SAML_SP_CERT_PATH') ?: '/srv/app/keys/sp.crt';
     $spKeyPath  = getenv('SAML_SP_KEY_PATH') ?: '/srv/app/keys/sp.key';
     
-    $spCert = file_exists($spCertPath) ? file_get_contents($spCertPath) : '';
-    $spKey  = file_exists($spKeyPath)  ? file_get_contents($spKeyPath)  : '';
+    $spCert = file_exists($spCertPath) ? Utils::formatCert(file_get_contents($spCertPath)) : '';
+    $spKey  = file_exists($spKeyPath)  ? Utils::formatPrivateKey(file_get_contents($spKeyPath))  : '';
 
     return [
         'strict' => true,
@@ -54,7 +57,7 @@ function getSamlSettings() {
             'logoutRequestSigned' => false,
             'logoutResponseSigned' => false,
             'signMetadata' => false,
-            'wantMessagesSigned' => true,
+            'wantMessagesSigned' => false,
             'wantAssertionsSigned' => true,
             'wantNameId' => true,
             'wantNameIdEncrypted' => false,
