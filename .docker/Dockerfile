@@ -8,8 +8,8 @@ WORKDIR /srv/app
 
 RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
 
-COPY composer.json /srv/app/
-RUN composer update --no-dev --no-interaction --optimize-autoloader
+COPY composer.json composer.lock /srv/app/
+RUN composer install --no-dev --no-interaction --optimize-autoloader
 
 COPY . /srv/app
 COPY .docker/vhost.conf /etc/apache2/sites-available/000-default.conf
