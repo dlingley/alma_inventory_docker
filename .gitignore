@@ -6,4 +6,5 @@ cache/output/*.csv
 key.php
 keys/
 allowed_users.txt
+composer.lock
 
