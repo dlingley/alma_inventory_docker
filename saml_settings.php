@@ -17,6 +17,12 @@ function getSamlSettings() {
         $idpCert = file_get_contents($certPath);
     }
 
+    $spCertPath = getenv('SAML_SP_CERT_PATH') ?: '/srv/app/keys/sp.crt';
+    $spKeyPath  = getenv('SAML_SP_KEY_PATH') ?: '/srv/app/keys/sp.key';
+    
+    $spCert = file_exists($spCertPath) ? file_get_contents($spCertPath) : '';
+    $spKey  = file_exists($spKeyPath)  ? file_get_contents($spKeyPath)  : '';
+
     return [
         'strict' => true,
         'debug'  => true,
@@ -31,6 +37,8 @@ function getSamlSettings() {
                 'binding' => 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
             ],
             'NameIDFormat' => 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified',
+            'x509cert' => $spCert,
+            'privateKey' => $spKey,
         ],
         'idp' => [
             'entityId' => $idpEntityId,
@@ -42,12 +50,12 @@ function getSamlSettings() {
         ],
         'security' => [
             'nameIdEncrypted' => false,
-            'authnRequestsSigned' => false,
+            'authnRequestsSigned' => !empty($spKey),
             'logoutRequestSigned' => false,
             'logoutResponseSigned' => false,
             'signMetadata' => false,
-            'wantMessagesSigned' => false,
-            'wantAssertionsSigned' => false,
+            'wantMessagesSigned' => true,
+            'wantAssertionsSigned' => true,
             'wantNameId' => true,
             'wantNameIdEncrypted' => false,
             'requestedAuthnContext' => false,
