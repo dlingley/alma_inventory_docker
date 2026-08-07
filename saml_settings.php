@@ -4,11 +4,21 @@
  * All configuration parameters are retrieved from environment variables (getenv()).
  */
 
+function resolveFilePath($path) {
+    if (empty($path)) return '';
+    if (file_exists($path)) return $path;
+    $relative = __DIR__ . '/' . ltrim($path, '/');
+    if (file_exists($relative)) return $relative;
+    $basename = __DIR__ . '/keys/' . basename($path);
+    if (file_exists($basename)) return $basename;
+    return '';
+}
+
 function cleanCertString($certStr) {
     if (empty($certStr)) return '';
-    // Strip headers, footers, newlines, carriage returns, and spaces, then wrap with 64-char lines
+    // Strip headers, footers, newlines, carriage returns, and spaces
     $cleaned = preg_replace('/(-----(BEGIN|END) (CERTIFICATE|RSA PRIVATE KEY|PRIVATE KEY)-----|\s+)/', '', $certStr);
-    return trim(chunk_split($cleaned, 64, "\n"));
+    return trim($cleaned);
 }
 
 function getSamlSettings() {
@@ -18,17 +28,21 @@ function getSamlSettings() {
     $idpEntityId = getenv('SAML_IDP_ENTITY_ID') ?: 'https://idp.purdue.edu/entity';
     $idpSsoUrl   = getenv('SAML_IDP_SSO_URL') ?: 'https://login.openathens.net/saml/2/sso/purdue.edu';
     
-    $certPath = getenv('SAML_IDP_CERT_PATH') ?: '/srv/app/keys/idp.crt';
+    $certEnvPath = getenv('SAML_IDP_CERT_PATH') ?: '/srv/app/keys/idp.crt';
+    $certPath = resolveFilePath($certEnvPath);
     $idpCert = '';
-    if (file_exists($certPath)) {
+    if (!empty($certPath) && file_exists($certPath)) {
         $idpCert = cleanCertString(file_get_contents($certPath));
     }
 
-    $spCertPath = getenv('SAML_SP_CERT_PATH') ?: '/srv/app/keys/sp.crt';
-    $spKeyPath  = getenv('SAML_SP_KEY_PATH') ?: '/srv/app/keys/sp.key';
+    $spCertEnvPath = getenv('SAML_SP_CERT_PATH') ?: '/srv/app/keys/sp.crt';
+    $spKeyEnvPath  = getenv('SAML_SP_KEY_PATH') ?: '/srv/app/keys/sp.key';
     
-    $spCert = file_exists($spCertPath) ? cleanCertString(file_get_contents($spCertPath)) : '';
-    $spKey  = file_exists($spKeyPath)  ? file_get_contents($spKeyPath)  : '';
+    $spCertPath = resolveFilePath($spCertEnvPath);
+    $spKeyPath  = resolveFilePath($spKeyEnvPath);
+
+    $spCert = (!empty($spCertPath) && file_exists($spCertPath)) ? cleanCertString(file_get_contents($spCertPath)) : '';
+    $spKey  = (!empty($spKeyPath) && file_exists($spKeyPath))   ? file_get_contents($spKeyPath)  : '';
 
     return [
         'strict' => true,
