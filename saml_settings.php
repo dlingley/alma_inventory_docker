@@ -6,8 +6,9 @@
 
 function cleanCertString($certStr) {
     if (empty($certStr)) return '';
-    // Strip headers, footers, newlines, carriage returns, and spaces
-    return trim(preg_replace('/(-----(BEGIN|END) (CERTIFICATE|RSA PRIVATE KEY|PRIVATE KEY)-----|\s+)/', '', $certStr));
+    // Strip headers, footers, newlines, carriage returns, and spaces, then wrap with 64-char lines
+    $cleaned = preg_replace('/(-----(BEGIN|END) (CERTIFICATE|RSA PRIVATE KEY|PRIVATE KEY)-----|\s+)/', '', $certStr);
+    return trim(chunk_split($cleaned, 64, "\n"));
 }
 
 function getSamlSettings() {
