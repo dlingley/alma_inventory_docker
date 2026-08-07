@@ -32,12 +32,6 @@ try {
     $nameId = $auth->getNameId();
     $attributes = $auth->getAttributes();
 
-    // Log full SAML assertion details to container log for attribute inspection during testing
-    error_log('=== SAML ASSERTION RECEIVED ===');
-    error_log('SAML NameID: ' . $nameId);
-    error_log('SAML Attributes: ' . print_r($attributes, true));
-    error_log('================================');
-
     // Read allow-list file (Fail Closed)
     $allowListPath = getenv('ALLOWED_USERS_FILE') ?: '/srv/app/allowed_users.txt';
     $isAuthorized = false;
