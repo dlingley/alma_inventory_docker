@@ -6,6 +6,8 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /srv/app
 
+RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
+
 COPY composer.json /srv/app/
 RUN composer update --no-dev --no-interaction --optimize-autoloader
 
