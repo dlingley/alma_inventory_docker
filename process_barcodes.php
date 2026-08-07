@@ -341,12 +341,12 @@ if (isset($_POST['submit'])) {
         //pre($unsortedArray);
         $first = reset($unsortedArray);
         $last = end($unsortedArray);
-        $first_call = $first['call_number'];
+        $first_call = $first['call_number'] ?? '';
         //remove spaces and periods
-        $first_call = strtr($first_call, array('.' => '', ' ' => ''));
+        $first_call = strtr((string)$first_call, array('.' => '', ' ' => ''));
 
-        $last_call = $last['call_number'];
-        $last_call = strtr($last_call, array('.' => '', ' ' => ''));
+        $last_call = $last['call_number'] ?? '';
+        $last_call = strtr((string)$last_call, array('.' => '', ' ' => ''));
 
         //var_dump($first, $last, $first_call, $last_call);
 
@@ -407,7 +407,9 @@ if (isset($_POST['submit'])) {
                       $move = 'Move item forward '.($move)  . ' spaces';
                     }
 
-                    $orderProblem = "**OUT OF ORDER**<BR>Item Currently Between:<BR><em>" . $unsortedArray[$sortednk[$key]['scan_loc'] - 1]['call_number'] . "</em> & <em>" . $unsortedArray[$sortednk[$key]['scan_loc'] + 1]['call_number'] . "</em><BR>" . $move . "<BR>";
+                    $prevCn = $unsortedArray[$sortednk[$key]['scan_loc'] - 1]['call_number'] ?? '';
+                    $nextCn = $unsortedArray[$sortednk[$key]['scan_loc'] + 1]['call_number'] ?? '';
+                    $orderProblem = "**OUT OF ORDER**<BR>Item Currently Between:<BR><em>" . htmlspecialchars((string)$prevCn) . "</em> & <em>" . htmlspecialchars((string)$nextCn) . "</em><BR>" . $move . "<BR>";
                     $orderProblemCount += 1;
                     $problem = true;
 
@@ -510,12 +512,12 @@ if (isset($_POST['submit'])) {
             //array that way we can re-sort output array if desired
             $shelflist_obj = new stdClass();
           	$shelflist_obj->correct_location = $correct_loc;
-          	$shelflist_obj->call_number = $sortednk[$key]['call_number'];
-            $shelflist_obj->norm_call_number = $sortednk[$key]['call_sort'];
-            $shelflist_obj->title = mb_convert_encoding(substr($sortednk[$key]['title'], 0, 20) . '...', 'UTF-8', 'ISO-8859-1');
-            $shelflist_obj->scanned_location = $scan_loc;
+          	$shelflist_obj->call_number = $sortednk[$key]['call_number'] ?? '';
+            $shelflist_obj->norm_call_number = $sortednk[$key]['call_sort'] ?? '';
+            $shelflist_obj->title = mb_convert_encoding(substr($sortednk[$key]['title'] ?? '', 0, 20) . '...', 'UTF-8', 'ISO-8859-1');
+            $shelflist_obj->scanned_location = $scan_loc ?? '';
             $shelflist_obj->problem_list = $orderProblem . $cnTypeProblem . $nipProblem . $tempProblem . $libraryProblem . $locationProblem . $policyProblem . $typeProblem;
-            $shelflist_obj->barcode = $sortednk[$key]['item_barcode'];
+            $shelflist_obj->barcode = $sortednk[$key]['item_barcode'] ?? '';
             $shelflist_obj->problem = $problem;
           	//Add this loation to the array of locations using the unique location code as the index value
             //This converts stdClass objects to an
@@ -624,7 +626,7 @@ function outputRecords($output){
     echo '<tr class="' . $row_class . '">';
 
     echo '<td class="col-order">' . $output[$key]['correct_location'] . '</td>';
-    echo '<td class="col-cn">' . htmlspecialchars($output[$key]['call_number']) . '</td>';
+    echo '<td class="col-cn">' . htmlspecialchars((string)($output[$key]['call_number'] ?? '')) . '</td>';
     echo '<td class="col-title">' . $output[$key]['title'] . '</td>';
     echo '<td class="col-scanned">' . $output[$key]['scanned_location'] . '</td>';
 
