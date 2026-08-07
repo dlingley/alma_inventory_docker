@@ -4,7 +4,11 @@
  * All configuration parameters are retrieved from environment variables (getenv()).
  */
 
-use OneLogin\Saml2\Utils;
+function cleanCertString($certStr) {
+    if (empty($certStr)) return '';
+    // Strip headers, footers, newlines, carriage returns, and spaces
+    return trim(preg_replace('/(-----(BEGIN|END) (CERTIFICATE|RSA PRIVATE KEY|PRIVATE KEY)-----|\s+)/', '', $certStr));
+}
 
 function getSamlSettings() {
     $spEntityId = getenv('SAML_SP_ENTITY_ID') ?: 'https://localhost:8443/saml/metadata';
@@ -16,15 +20,14 @@ function getSamlSettings() {
     $certPath = getenv('SAML_IDP_CERT_PATH') ?: '/srv/app/keys/idp.crt';
     $idpCert = '';
     if (file_exists($certPath)) {
-        $rawCert = file_get_contents($certPath);
-        $idpCert = Utils::formatCert($rawCert);
+        $idpCert = cleanCertString(file_get_contents($certPath));
     }
 
     $spCertPath = getenv('SAML_SP_CERT_PATH') ?: '/srv/app/keys/sp.crt';
     $spKeyPath  = getenv('SAML_SP_KEY_PATH') ?: '/srv/app/keys/sp.key';
     
-    $spCert = file_exists($spCertPath) ? Utils::formatCert(file_get_contents($spCertPath)) : '';
-    $spKey  = file_exists($spKeyPath)  ? Utils::formatPrivateKey(file_get_contents($spKeyPath))  : '';
+    $spCert = file_exists($spCertPath) ? cleanCertString(file_get_contents($spCertPath)) : '';
+    $spKey  = file_exists($spKeyPath)  ? file_get_contents($spKeyPath)  : '';
 
     return [
         'strict' => true,
@@ -58,7 +61,7 @@ function getSamlSettings() {
             'logoutResponseSigned' => false,
             'signMetadata' => false,
             'wantMessagesSigned' => false,
-            'wantAssertionsSigned' => true,
+            'wantAssertionsSigned' => false,
             'wantNameId' => true,
             'wantNameIdEncrypted' => false,
             'requestedAuthnContext' => false,
