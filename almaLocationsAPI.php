@@ -1,7 +1,6 @@
 <?php
 require("key.php");
-//Uncomment below if you wish to enable authentication
-//require("login.php");
+require_once(__DIR__ . "/login.php");
 
 $lib_id = isset($_GET['lib_id']) ? $_GET['lib_id'] : '';
 // For setup/debugging, you can temporarily hardcode a library ID here (example: 'hsse').

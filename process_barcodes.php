@@ -178,8 +178,7 @@ set_time_limit(600);
 include 'simplexlsx/simplexlsx.class.php';
 
 //Ensure Authentication and load API Keys
-//Uncomment line below to enable authentication after setting up login.php properly
-//require("login.php");
+require_once(__DIR__ . "/login.php");
 require("SortCallNumber.php");
 require("almaBarcodeAPI.php");
 

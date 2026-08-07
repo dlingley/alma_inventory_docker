@@ -7,5 +7,4 @@ docker-compose.yml
 tests
 *.md
 phpunit.xml
-composer.lock
-vendor
+

@@ -1,6 +1,7 @@
 <?php
 
 require("key.php");
+require_once(__DIR__ . "/login.php");
 
 // set the Caching Frequency - neverExpire, Weekly, Daily, Hourly or None (No Caching) (recommended default: Weekly)
 if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');

@@ -4,3 +4,6 @@ cache/barcodes/*.xml
 cache/upload/*.xlsx
 cache/output/*.csv
 key.php
+keys/
+allowed_users.txt
+

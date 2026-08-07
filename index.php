@@ -4,7 +4,7 @@ $progress_id = uniqid('prog_', true);
 foreach (glob('/tmp/progress_*.json') as $f) {
     if (filemtime($f) < time() - 3600) @unlink($f);
 }
-//require("login.php");
+require_once(__DIR__ . "/login.php");
 require("key.php");
 
 // Fetch libraries from Alma API
