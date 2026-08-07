@@ -1,6 +1,5 @@
 {
     "require": {
-        "adldap/adldap": "dev-master",
         "onelogin/php-saml": "^4.0"
     },
     "require-dev": {
