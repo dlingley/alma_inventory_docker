@@ -239,34 +239,34 @@ $typeProblemCount = 0;
 if (isset($_POST['submit'])) {
   //View Post Data Submitted
   //pre($_POST);
-	//Clear cache directory if requested
-    if ($_POST['clearCache'] == 'true') {
-		foreach(glob("cache/barcodes/*") as $file)
-		{
-				unlink($file);
-		}
-   	}
+    // Ensure all required cache subdirectories exist
+    foreach (['cache', 'cache/upload', 'cache/uploads', 'cache/barcodes', 'cache/output'] as $dir) {
+        if (!is_dir(__DIR__ . '/' . $dir)) {
+            @mkdir(__DIR__ . '/' . $dir, 0775, true);
+        }
+    }
+
+    // Clear cache directory if requested
+    if (isset($_POST['clearCache']) && $_POST['clearCache'] == 'true') {
+        foreach (glob(__DIR__ . "/cache/barcodes/*") as $file) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        }
+    }
+
     if (isset($_FILES["file"])) {
-
-        //if there was an error uploading the file
         if ($_FILES["file"]["error"] > 0) {
-            echo "Return Code: " . $_FILES["file"]["error"] . "<br />";
-
+            echo "<h1>File Upload Error (Code: " . intval($_FILES["file"]["error"]) . ")</h1><br />";
+            echo '<a href="index.php">Run New File</a><br />';
+            exit();
         } else {
-            //Print file details
-            // echo "Upload: " . $_FILES["file"]["name"] . "<br />";
-            // echo "Type: " . $_FILES["file"]["type"] . "<br />";
-            // echo "Size: " . ($_FILES["file"]["size"] / 1024) . " Kb<br />";
-            // echo "Temp file: " . $_FILES["file"]["tmp_name"] . "<br />";
-
-            //if file already exists
-            if (file_exists("cache/upload/" . $_FILES["file"]["name"])) {
-                //echo $_FILES["file"]["name"] . " already exists. ";
-            } else {
-                //Store file in directory "upload" with the name of "uploaded_file.txt"
-                $storagename = 'uploaded_file_' . $_POST['library'] . '_' . $_POST['location'] . '_' . date('Ymd') .  '.xlsx';
-                move_uploaded_file($_FILES["file"]["tmp_name"], "cache/upload/" . $storagename);
-                //echo "Stored in: " . "cache/" . $_FILES["file"]["name"] . "<br />";
+            $storagename = 'uploaded_file_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['library'] ?? 'lib') . '_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $_POST['location'] ?? 'loc') . '_' . date('Ymd_His') . '_' . uniqid() . '.xlsx';
+            $filelocation = __DIR__ . "/cache/upload/" . $storagename;
+            if (!move_uploaded_file($_FILES["file"]["tmp_name"], $filelocation)) {
+                echo '<h1>Failed to save uploaded file to cache/upload.</h1><br />';
+                echo '<a href="index.php">Run New File</a><br />';
+                exit();
             }
         }
     } else {
@@ -282,9 +282,7 @@ if (isset($_POST['submit'])) {
         exit();
     }
 
-
-    if (file_exists("cache/upload/" . $storagename)) {
-      $filelocation = "cache/upload/" . $storagename;
+    if (file_exists($filelocation)) {
       $xlsx = new SimpleXLSX($filelocation);
       list($num_cols, $num_rows) = $xlsx->dimension();
 

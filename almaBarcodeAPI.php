@@ -93,8 +93,11 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Monthly');
          }
 
          // save result to cache (only if valid item XML and no API errors exist)
-         if ($result !== false && strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/") && !empty(trim($result)) && strpos($result, '<errorsExist>true</errorsExist>') === false) {
-             file_put_contents("cache/barcodes/" . $barcode . ".xml", $result);
+         if (!is_dir(__DIR__ . "/cache/barcodes")) {
+             @mkdir(__DIR__ . "/cache/barcodes", 0775, true);
+         }
+         if ($result !== false && strcmp(CACHE_FREQUENCY, "None") && is_writable(__DIR__ . "/cache/barcodes/") && !empty(trim($result)) && strpos($result, '<errorsExist>true</errorsExist>') === false) {
+             file_put_contents(__DIR__ . "/cache/barcodes/" . $barcode . ".xml", $result);
              if (isset($_GET['debug'])) {
                  print("Barcode File written to cache\n");
              }
@@ -238,8 +241,11 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Monthly');
          $barcode_enc = $to_fetch[$row]['barcode_enc'];
 
          if ($result !== false && $curl_error === 0) {
-             if (strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/") && !empty(trim($result))) {
-                 file_put_contents("cache/barcodes/" . $barcode_enc . ".xml", $result);
+             if (!is_dir(__DIR__ . "/cache/barcodes")) {
+                 @mkdir(__DIR__ . "/cache/barcodes", 0775, true);
+             }
+             if (strcmp(CACHE_FREQUENCY, "None") && is_writable(__DIR__ . "/cache/barcodes/") && !empty(trim($result))) {
+                 file_put_contents(__DIR__ . "/cache/barcodes/" . $barcode_enc . ".xml", $result);
              }
              $xml = simplexml_load_string($result);
              // Store keyed by original row number — preserves scan order
