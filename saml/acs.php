@@ -88,7 +88,7 @@ try {
         header('Location: ' . $redirectTo);
         exit;
     } else {
-        error_log('SAML Auth Authorization: User (' . $nameId . ') is not in allow-list. Access denied.');
+        error_log('SAML Auth Authorization Failed. NameID: ' . $nameId . ' | Checked candidates: ' . implode(', ', array_unique($candidates)) . ' | Attributes: ' . json_encode($attributes));
         $_SESSION['auth_status'] = false;
         $_SESSION['denied_user'] = $nameId;
         header('Location: ../noaccess.php');
