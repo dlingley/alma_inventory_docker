@@ -1,4 +1,5 @@
 <?php
+require_once(__DIR__ . "/login.php");
 header('Content-Type: application/json');
 
 $progress_id = isset($_GET['id']) ? preg_replace('/[^a-zA-Z0-9_.]/', '', $_GET['id']) : '';

@@ -1,0 +1,6 @@
+RewriteEngine On
+
+RewriteRule ^saml/login/?$ saml/login.php [L,QSA]
+RewriteRule ^saml/acs/?$ saml/acs.php [L,QSA]
+RewriteRule ^saml/metadata/?$ saml/metadata.php [L,QSA]
+RewriteRule ^saml/logout/?$ saml/logout.php [L,QSA]

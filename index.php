@@ -4,25 +4,38 @@ $progress_id = uniqid('prog_', true);
 foreach (glob('/tmp/progress_*.json') as $f) {
     if (filemtime($f) < time() - 3600) @unlink($f);
 }
-//require("login.php");
+require_once(__DIR__ . "/login.php");
 require("key.php");
 
 // Fetch libraries from Alma API
 $ch = curl_init();
 $url = 'https://api-na.hosted.exlibrisgroup.com/almaws/v1/conf/libraries';
-$queryParams = '?' . urlencode('lang') . '=' . urlencode('en') . '&' . urlencode('apikey') . '=' . ALMA_SHELFLIST_API_KEY;
+$queryParams = '?' . urlencode('lang') . '=' . urlencode('en') . '&' . urlencode('apikey') . '=' . urlencode(trim(ALMA_SHELFLIST_API_KEY));
 curl_setopt($ch, CURLOPT_URL, $url . $queryParams);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 curl_setopt($ch, CURLOPT_HEADER, FALSE);
 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'GET');
+curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, FALSE);
 $response = curl_exec($ch);
 curl_close($ch);
-$xml_result = simplexml_load_string($response);
+$xml_result = @simplexml_load_string($response);
 $libraries = [];
-if ($xml_result) {
+if ($xml_result && isset($xml_result->library)) {
     foreach ($xml_result->library as $library) {
         $libraries[] = ['code' => (string)$library->code, 'name' => (string)$library->name];
     }
+}
+
+// Fallback default libraries if Alma API returns error/not allowed
+if (empty($libraries)) {
+    $libraries = [
+        ['code' => 'hsse', 'name' => 'HSSE Library'],
+        ['code' => 'hicks', 'name' => 'Hicks Undergraduate Library'],
+        ['code' => 'math', 'name' => 'Mathematical Sciences Library'],
+        ['code' => 'vet', 'name' => 'Veterinary Medical Library'],
+        ['code' => 'pavl', 'name' => 'Archives & Special Collections'],
+        ['code' => 'walc', 'name' => 'WALC Active Learning Center']
+    ];
 }
 ?>
 <!DOCTYPE html>

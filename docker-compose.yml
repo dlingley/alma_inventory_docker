@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     ports:
       - 8080:80
+      - 8443:443
     volumes:
       - .:/srv/app
     env_file:

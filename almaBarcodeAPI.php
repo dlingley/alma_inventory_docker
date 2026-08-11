@@ -1,6 +1,7 @@
 <?php
 
 require("key.php");
+require_once(__DIR__ . "/login.php");
 
 // set the Caching Frequency - neverExpire, Weekly, Daily, Hourly or None (No Caching) (recommended default: Weekly)
 if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');
@@ -88,8 +89,8 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');
              print("<pre>" . htmlspecialchars($result) . "</pre>");
          }
 
-         // save result to cache
-         if ($result !== false && strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/") && !empty(trim($result))) {
+         // save result to cache (only if valid item XML and no API errors exist)
+         if ($result !== false && strcmp(CACHE_FREQUENCY, "None") && is_writable("cache/barcodes/") && !empty(trim($result)) && strpos($result, '<errorsExist>true</errorsExist>') === false) {
              file_put_contents("cache/barcodes/" . $barcode . ".xml", $result);
              if (isset($_GET['debug'])) {
                  print("Barcode File written to cache\n");
