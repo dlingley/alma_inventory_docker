@@ -1,24 +1,9 @@
 # ============================================================
-# Prod Kubernetes Manifests - lib-inventory
-# Apply with: kubectl apply --server-side -f k8s/prod/
+# Prod Kubernetes Manifests — lib-inventory
+# Apply automatically via GitHub Actions (production branch)
+# or manually with: kubectl apply -f k8s/prod/
 # ============================================================
 
-# --- Secret ---
-# Created manually in Rancher (one time only), NOT stored in git:
-#   Namespace: lib-inventory-prod
-#   Name: lib-inventory-api-secret
-#   Key: ALMA_SHELFLIST_API_KEY  |  Value: your actual API key
-#
-# Also requires a Harbor image pull secret, created via kubectl:
-#   kubectl create secret docker-registry harbor-prod-secret \
-#     --namespace=lib-inventory-prod \
-#     --docker-server=image-registry.it.purdue.edu \
-#     --docker-username=YOUR_PURDUE_USERNAME \
-#     --docker-password=YOUR_HARBOR_CLI_SECRET
-
----
-
-# --- Deployment ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,7 +13,7 @@ metadata:
     app: lib-inventory
     env: prod
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: lib-inventory
@@ -40,6 +25,7 @@ spec:
     spec:
       containers:
         - name: lib-inventory
+          # GitHub Actions replaces IMAGE_TAG_PLACEHOLDER with the git SHA on each deploy
           image: image-registry.it.purdue.edu/lib-inventory/lib-inventory:IMAGE_TAG_PLACEHOLDER
           imagePullPolicy: Always
           ports:
@@ -59,12 +45,35 @@ spec:
                 secretKeyRef:
                   name: lib-inventory-api-secret
                   key: ALMA_SHELFLIST_API_KEY
+            - name: SAML_SP_ENTITY_ID
+              value: "https://inventory.lib.purdue.edu/saml/metadata"
+            - name: SAML_SP_ACS_URL
+              value: "https://inventory.lib.purdue.edu/saml/acs"
+            - name: SAML_IDP_ENTITY_ID
+              value: "https://idp.purdue.edu/entity"
+            - name: SAML_IDP_SSO_URL
+              value: "https://login.openathens.net/saml/2/sso/purdue.edu"
+            - name: SAML_IDP_CERT_PATH
+              value: "/etc/saml/idp.crt"
+            - name: ALLOWED_USERS_FILE
+              value: "/etc/saml/allowed_users.txt"
             - name: HTTP_PROXY
               value: "http://proxy.itap.purdue.edu:3128"
             - name: HTTPS_PROXY
               value: "http://proxy.itap.purdue.edu:3128"
             - name: NO_PROXY
               value: "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16"
+          volumeMounts:
+            - name: saml-idp-cert
+              mountPath: /etc/saml/idp.crt
+              subPath: idp.crt
+              readOnly: true
+            - name: allowed-users
+              mountPath: /etc/saml/allowed_users.txt
+              subPath: allowed_users.txt
+              readOnly: true
+            - name: app-cache
+              mountPath: /srv/app/cache
           resources:
             requests:
               memory: "128Mi"
@@ -72,6 +81,16 @@ spec:
             limits:
               memory: "256Mi"
               cpu: "250m"
+      volumes:
+        - name: saml-idp-cert
+          secret:
+            secretName: saml-idp-cert
+        - name: allowed-users
+          configMap:
+            name: lib-inventory-allowed-users
+        - name: app-cache
+          persistentVolumeClaim:
+            claimName: lib-inventory-cache-pvc
       imagePullSecrets:
         - name: harbor-prod-secret
 
@@ -84,6 +103,7 @@ metadata:
   name: lib-inventory
   namespace: lib-inventory-prod
 spec:
+  sessionAffinity: ClientIP
   selector:
     app: lib-inventory
   ports:
@@ -94,7 +114,7 @@ spec:
 ---
 
 # --- Ingress ---
-# DNS: inventory.lib.purdue.edu points to k8sds1.it.purdue.edu
+# DNS: inventory.lib.purdue.edu
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -114,3 +134,18 @@ spec:
                 name: lib-inventory
                 port:
                   number: 80
+
+---
+
+# --- PersistentVolumeClaim for Cache (History, Barcodes, Outputs, Users) ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lib-inventory-cache-pvc
+  namespace: lib-inventory-prod
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
