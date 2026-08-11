@@ -79,7 +79,8 @@ try {
         if (isset($_POST['RelayState']) && !empty($_POST['RelayState'])) {
             $relay = $_POST['RelayState'];
             // Validate RelayState to avoid open redirect vulnerabilities
-            if (preg_match('#^/([a-zA-Z0-9_-]+\.php)?(\?.*)?$#', $relay) || preg_match('#^https?://localhost:8080/#', $relay)) {
+            // Only allow relative paths (starting with /) to stay on the same host
+            if (preg_match('#^/([a-zA-Z0-9_/-]*\.?[a-zA-Z0-9_-]*)?(\?.*)?$#', $relay)) {
                 $redirectTo = $relay;
             }
         }

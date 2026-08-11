@@ -75,8 +75,10 @@ function getSamlSettings() {
             'logoutRequestSigned' => false,
             'logoutResponseSigned' => false,
             'signMetadata' => false,
-            'wantMessagesSigned' => false,
-            'wantAssertionsSigned' => false,
+            // These validate the IdP's response signature against idp.crt.
+            // They are independent of whether the SP has its own signing key.
+            'wantMessagesSigned' => true,
+            'wantAssertionsSigned' => true,
             'wantNameId' => true,
             'wantNameIdEncrypted' => false,
             'requestedAuthnContext' => false,
