@@ -958,6 +958,11 @@ function progressLoop(barName) {
         },
         error: function(xhr, status, err) {
             console.log("pERROR: " + err + " — retrying...");
+            setTimeout(function() { progressLoop(barName); }, 2000);
+        }
+    });
+}
+
 <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
 // ===== User Management Modal JS =====
 function renderUserTable(users) {
