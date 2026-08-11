@@ -22,6 +22,15 @@ function cleanCertString($certStr) {
 }
 
 function getSamlSettings() {
+    // Handle reverse proxy TLS termination (e.g. Traefik in Kubernetes)
+    if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+        $_SERVER['HTTPS'] = 'on';
+        $_SERVER['SERVER_PORT'] = 443;
+    }
+    if (class_exists('OneLogin\Saml2\Utils')) {
+        \OneLogin\Saml2\Utils::setProxyVars(true);
+    }
+
     $spEntityId = getenv('SAML_SP_ENTITY_ID') ?: 'https://localhost:8443/saml/metadata';
     $spAcsUrl   = getenv('SAML_SP_ACS_URL') ?: 'https://localhost:8443/saml/acs';
     
