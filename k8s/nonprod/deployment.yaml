@@ -45,7 +45,7 @@ spec:
                   name: lib-inventory-api-secret
                   key: ALMA_SHELFLIST_API_KEY
             - name: SAML_SP_ENTITY_ID
-              value: "https://dev-inventory.lib.purdue.edu/saml/metadata"
+              value: "https://inventory.lib.purdue.edu/saml/metadata"
             - name: SAML_SP_ACS_URL
               value: "https://dev-inventory.lib.purdue.edu/saml/acs"
             - name: SAML_IDP_ENTITY_ID

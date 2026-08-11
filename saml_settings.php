@@ -31,7 +31,7 @@ function getSamlSettings() {
         \OneLogin\Saml2\Utils::setProxyVars(true);
     }
 
-    $spEntityId = getenv('SAML_SP_ENTITY_ID') ?: 'https://localhost:8443/saml/metadata';
+    $spEntityId = getenv('SAML_SP_ENTITY_ID') ?: 'https://inventory.lib.purdue.edu/saml/metadata';
     $spAcsUrl   = getenv('SAML_SP_ACS_URL') ?: 'https://localhost:8443/saml/acs';
     
     $idpEntityId = getenv('SAML_IDP_ENTITY_ID') ?: 'https://idp.purdue.edu/entity';
