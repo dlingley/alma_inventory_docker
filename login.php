@@ -79,3 +79,7 @@ if (empty($loggedInUser)) {
     $loggedInUser = 'Authenticated User';
 }
 
+// Release PHP session lock so concurrent AJAX requests (like getProgress.php) aren't blocked by long-running processes
+session_write_close();
+
+
