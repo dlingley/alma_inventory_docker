@@ -3,8 +3,8 @@
 require("key.php");
 require_once(__DIR__ . "/login.php");
 
-// set the Caching Frequency - neverExpire, Weekly, Daily, Hourly or None (No Caching) (recommended default: Weekly)
-if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');
+// set the Caching Frequency - Monthly (30 Days), Weekly, Daily, Hourly or None (recommended default: Monthly/30 Days)
+if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Monthly');
 /*********************************************************************
  * SortLC
  *********************************************************************/
@@ -22,34 +22,37 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');
          print("URL:" . $barcode . " $url<br>\n");
 
      if (strcmp(CACHE_FREQUENCY, "None")) {
-         // check cache for barcode
-         if (file_exists("cache/barcodes/" . $barcode . ".xml")) {
+         $cache_file = "cache/barcodes/" . $barcode . ".xml";
+         if (file_exists($cache_file)) {
              // check last modified datestamp
              $cache_expired = false;
              switch (CACHE_FREQUENCY) {
                  case 'Hourly':
-                     if (filemtime("cache/barcodes/" . $barcode . ".xml") < strtotime(date("Y-m-d H:00:00", strtotime("now")))) $cache_expired = true;
+                     if (filemtime($cache_file) < strtotime(date("Y-m-d H:00:00"))) $cache_expired = true;
                      break;
                  case 'Daily':
-                     if (filemtime("cache/barcodes/" . $barcode . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
+                     if (filemtime($cache_file) < strtotime(date("Y-m-d 00:00:00"))) $cache_expired = true;
                      break;
                  case 'Weekly':
-                     if (filemtime("cache/barcodes/" . $barcode . ".xml") < strtotime("-7 days")) $cache_expired = true;
+                     if (filemtime($cache_file) < strtotime("-7 days")) $cache_expired = true;
                      break;
+                 case 'Monthly':
+                 case '30Days':
                  default:
-                     if(filemtime("cache/barcodes/". $barcode .".xml") < strtotime(date("Y-m-d 00:00:00",strtotime("now")))) $cache_expired = true;
+                     if (filemtime($cache_file) < strtotime("-30 days")) $cache_expired = true;
+                     break;
              }
-             //$cache_expired = true;
+
              if (!$cache_expired) {
-                 if (filesize("cache/barcodes/" . $barcode . ".xml") > 0) {
-                     $xml_barcode_result = @simplexml_load_file("cache/barcodes/" . $barcode . ".xml");
+                 if (filesize($cache_file) > 0) {
+                     $xml_barcode_result = @simplexml_load_file($cache_file);
                  } else {
                      $xml_barcode_result = false;
                  }
-                 if (isset($_GET['debug'])) print("loaded data from cache file: cache/barcodes/" . $barcode . ".xml<br>\n");
-             }
-             else {
-               $xml_barcode_result = false;
+                 if (isset($_GET['debug'])) print("loaded data from cache file: " . $cache_file . "<br>\n");
+             } else {
+                 @unlink($cache_file); // Clean up expired barcode cache file
+                 $xml_barcode_result = false;
              }
          }
      }
@@ -156,27 +159,34 @@ if (!defined('CACHE_FREQUENCY')) define('CACHE_FREQUENCY', 'Weekly');
 
          $xml_barcode_result = false;
          if (strcmp(CACHE_FREQUENCY, "None")) {
-             if (file_exists("cache/barcodes/" . $barcode_enc . ".xml")) {
+             $cache_file = "cache/barcodes/" . $barcode_enc . ".xml";
+             if (file_exists($cache_file)) {
                  $cache_expired = false;
                  switch (CACHE_FREQUENCY) {
                      case 'Hourly':
-                         if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime(date("Y-m-d H:00:00", strtotime("now")))) $cache_expired = true;
+                         if (filemtime($cache_file) < strtotime(date("Y-m-d H:00:00"))) $cache_expired = true;
                          break;
                      case 'Daily':
-                         if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
+                         if (filemtime($cache_file) < strtotime(date("Y-m-d 00:00:00"))) $cache_expired = true;
                          break;
                      case 'Weekly':
-                         if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime("-7 days")) $cache_expired = true;
+                         if (filemtime($cache_file) < strtotime("-7 days")) $cache_expired = true;
                          break;
+                     case 'Monthly':
+                     case '30Days':
                      default:
-                         if (filemtime("cache/barcodes/" . $barcode_enc . ".xml") < strtotime(date("Y-m-d 00:00:00", strtotime("now")))) $cache_expired = true;
+                         if (filemtime($cache_file) < strtotime("-30 days")) $cache_expired = true;
+                         break;
                  }
                  if (!$cache_expired) {
-                     if (filesize("cache/barcodes/" . $barcode_enc . ".xml") > 0) {
-                         $xml_barcode_result = @simplexml_load_file("cache/barcodes/" . $barcode_enc . ".xml");
+                     if (filesize($cache_file) > 0) {
+                         $xml_barcode_result = @simplexml_load_file($cache_file);
                      } else {
                          $xml_barcode_result = false;
                      }
+                 } else {
+                     @unlink($cache_file); // Clean up expired barcode cache file
+                     $xml_barcode_result = false;
                  }
              }
          }
