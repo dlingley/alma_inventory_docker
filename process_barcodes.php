@@ -55,6 +55,39 @@ body {
     position: relative;
     overflow: hidden;
 }
+.user-bar {
+    position: absolute;
+    top: 1rem;
+    right: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(8px);
+    padding: 0.35rem 0.75rem 0.35rem 0.875rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    z-index: 10;
+}
+.user-bar .user-info {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 500;
+}
+.user-bar .logout-btn {
+    background: rgba(239, 68, 68, 0.85);
+    color: #ffffff;
+    text-decoration: none;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    transition: all var(--transition);
+}
+.user-bar .logout-btn:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+}
 .header::before {
     content: '';
     position: absolute;
@@ -535,6 +568,12 @@ if (isset($_POST['submit'])) {
         $barcode_count = $num_rows - 1;
 
         echo '<header class="header">';
+        if (!empty($loggedInUser)) {
+            echo '  <div class="user-bar">';
+            echo '    <span class="user-info">👤 <strong>' . htmlspecialchars($loggedInUser) . '</strong></span>';
+            echo '    <a href="/saml/logout" class="logout-btn">Log Out</a>';
+            echo '  </div>';
+        }
         echo '  <h1>📋 Inventory Report';
         echo '    <small>' . htmlspecialchars($_POST['library']) . ':' . htmlspecialchars($_POST['location']) . ' &middot; Range ' . substr($first_call, 0, 4) . '–' . substr($last_call, 0, 4) . ' &middot; ' . date('M j, Y') . '</small>';
         echo '  </h1>';
@@ -575,7 +614,15 @@ if (isset($_POST['submit'])) {
 
 
 } else {
-    echo '<header class="header"><h1>📋 Inventory Report</h1></header>';
+    echo '<header class="header">';
+    if (!empty($loggedInUser)) {
+        echo '  <div class="user-bar">';
+        echo '    <span class="user-info">👤 <strong>' . htmlspecialchars($loggedInUser) . '</strong></span>';
+        echo '    <a href="/saml/logout" class="logout-btn">Log Out</a>';
+        echo '  </div>';
+    }
+    echo '  <h1>📋 Inventory Report</h1>';
+    echo '</header>';
     echo '<div class="container" style="margin-top:2rem;text-align:center;">';
     echo '<div class="stat-card" style="display:inline-block;padding:2rem;"><div class="stat-value">No data received.</div><div class="stat-label">Please submit a barcode file first.</div></div>';
     echo '</div>';

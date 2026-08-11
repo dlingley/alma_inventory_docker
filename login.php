@@ -32,3 +32,18 @@ if (!$isAuthenticated) {
 }
 
 // User is authenticated and authorized; execution continues cleanly.
+$loggedInUser = '';
+if (!empty($_SESSION['samlUserAttributes'])) {
+    $attrs = $_SESSION['samlUserAttributes'];
+    if (!empty($attrs['displayName'][0])) {
+        $loggedInUser = $attrs['displayName'][0];
+    } elseif (!empty($attrs['mail'][0])) {
+        $loggedInUser = $attrs['mail'][0];
+    } elseif (!empty($attrs['eduPersonPrincipalName'][0])) {
+        $loggedInUser = $attrs['eduPersonPrincipalName'][0];
+    }
+}
+if (empty($loggedInUser) && !empty($_SESSION['samlUser'])) {
+    $loggedInUser = $_SESSION['samlUser'];
+}
+

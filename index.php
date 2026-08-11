@@ -95,6 +95,39 @@ if (empty($libraries)) {
             position: relative;
             overflow: hidden;
         }
+        .user-bar {
+            position: absolute;
+            top: 1rem;
+            right: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            background: rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(8px);
+            padding: 0.35rem 0.75rem 0.35rem 0.875rem;
+            border-radius: var(--radius-full);
+            font-size: 0.8125rem;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            z-index: 10;
+        }
+        .user-bar .user-info {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 500;
+        }
+        .user-bar .logout-btn {
+            background: rgba(239, 68, 68, 0.85);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all var(--transition);
+        }
+        .user-bar .logout-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
         .header::before {
             content: '';
             position: absolute;
@@ -446,6 +479,8 @@ if (empty($libraries)) {
 
         /* ===== Responsive ===== */
         @media (max-width: 600px) {
+            .header { padding-top: 3.5rem; }
+            .user-bar { top: 0.75rem; right: 50%; transform: translateX(50%); width: max-content; }
             .card { margin: -1rem 0.75rem 1.5rem; padding: 1.25rem; }
             .form-row { grid-template-columns: 1fr; }
             .toggle-grid { grid-template-columns: 1fr; }
@@ -457,6 +492,12 @@ if (empty($libraries)) {
 
 <!-- ===== Header ===== -->
 <header class="header">
+    <?php if (!empty($loggedInUser)): ?>
+    <div class="user-bar">
+        <span class="user-info">👤 <strong><?php echo htmlspecialchars($loggedInUser); ?></strong></span>
+        <a href="/saml/logout" class="logout-btn">Log Out</a>
+    </div>
+    <?php endif; ?>
     <h1><span class="icon">📋</span> Alma Inventory Scanner</h1>
     <p>Upload barcodes, verify shelf order, generate reports</p>
 </header>
