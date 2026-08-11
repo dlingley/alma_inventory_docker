@@ -35,15 +35,47 @@ if (!$isAuthenticated) {
 $loggedInUser = '';
 if (!empty($_SESSION['samlUserAttributes'])) {
     $attrs = $_SESSION['samlUserAttributes'];
-    if (!empty($attrs['displayName'][0])) {
-        $loggedInUser = $attrs['displayName'][0];
-    } elseif (!empty($attrs['mail'][0])) {
-        $loggedInUser = $attrs['mail'][0];
-    } elseif (!empty($attrs['eduPersonPrincipalName'][0])) {
-        $loggedInUser = $attrs['eduPersonPrincipalName'][0];
+    $preferredKeys = [
+        'displayName', 'mail', 'email', 'userPrincipalName', 'eduPersonPrincipalName',
+        'cn', 'name', 'uid',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
+        'urn:oid:0.9.2342.19200300.100.1.3', // mail OID
+        'urn:oid:2.16.840.1.113730.3.1.241'  // displayName OID
+    ];
+    foreach ($preferredKeys as $key) {
+        if (!empty($attrs[$key])) {
+            $val = is_array($attrs[$key]) ? $attrs[$key][0] : $attrs[$key];
+            if (!empty($val) && strlen($val) < 60) {
+                $loggedInUser = trim($val);
+                break;
+            }
+        }
+    }
+    // Scan all attribute values for any valid email string if preferred keys didn't match
+    if (empty($loggedInUser)) {
+        foreach ($attrs as $k => $v) {
+            $vals = is_array($v) ? $v : [$v];
+            foreach ($vals as $val) {
+                if (is_string($val) && strpos($val, '@') !== false && strlen($val) < 60) {
+                    $loggedInUser = trim($val);
+                    break 2;
+                }
+            }
+        }
     }
 }
+
+// Fallback: if samlUser is short (e.g. username), use it; if long opaque hash, default to 'Authenticated User'
 if (empty($loggedInUser) && !empty($_SESSION['samlUser'])) {
-    $loggedInUser = $_SESSION['samlUser'];
+    $rawUser = trim($_SESSION['samlUser']);
+    if (strlen($rawUser) <= 30) {
+        $loggedInUser = $rawUser;
+    } else {
+        $loggedInUser = 'Authenticated User';
+    }
+}
+if (empty($loggedInUser)) {
+    $loggedInUser = 'Authenticated User';
 }
 
