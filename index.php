@@ -128,6 +128,22 @@ if (empty($libraries)) {
             background: #dc2626;
             transform: translateY(-1px);
         }
+        .user-bar .history-btn {
+            background: rgba(255, 255, 255, 0.18);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font);
+        }
+        .user-bar .history-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-1px);
+        }
         .user-bar .admin-btn {
             background: rgba(59, 130, 246, 0.85);
             color: #ffffff;
@@ -144,6 +160,98 @@ if (empty($libraries)) {
             background: #2563eb;
             transform: translateY(-1px);
         }
+
+        /* ===== Run History Modal ===== */
+        #history-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            z-index: 1040;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        #history-modal.active { display: flex; }
+        .history-modal-card {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 95%;
+            max-width: 880px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .history-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .history-modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+        .history-filter-bar {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .history-filter-bar input[type="text"] {
+            flex: 1;
+            padding: 0.45rem 0.75rem;
+            border: 1.5px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-family: var(--font);
+            font-size: 0.8125rem;
+        }
+        .history-table-wrapper {
+            overflow-y: auto;
+            flex: 1;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            max-height: 380px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8125rem;
+            text-align: left;
+        }
+        .history-table th, .history-table td {
+            padding: 0.625rem 0.875rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .history-table th {
+            background: var(--color-bg);
+            font-weight: 600;
+            color: var(--color-text-secondary);
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .btn-download-sm {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all var(--transition);
+        }
+        .btn-download-csv { background: #dbeafe; color: #1e40af; }
+        .btn-download-csv:hover { background: #bfdbfe; }
+        .btn-download-input { background: #f1f5f9; color: #475569; }
+        .btn-download-input:hover { background: #e2e8f0; }
 
         /* ===== Admin User Modal ===== */
         #user-modal {
@@ -655,6 +763,7 @@ if (empty($libraries)) {
     <?php if (!empty($loggedInUser)): ?>
     <div class="user-bar">
         <span class="user-info">👤 <strong><?php echo htmlspecialchars($loggedInUser); ?></strong></span>
+        <button id="open-history-modal-btn" class="history-btn">📜 History</button>
         <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
         <button id="open-user-modal-btn" class="admin-btn">⚙️ Manage Users</button>
         <?php endif; ?>
@@ -664,6 +773,37 @@ if (empty($libraries)) {
     <h1><span class="icon">📋</span> Alma Inventory Scanner</h1>
     <p>Upload barcodes, verify shelf order, generate reports</p>
 </header>
+
+<!-- ===== Run History Modal ===== -->
+<div id="history-modal">
+    <div class="history-modal-card">
+        <div class="history-modal-header">
+            <h3>📜 Inventory Run History <?php echo (!empty($isSuperAdmin) && $isSuperAdmin === true) ? '<span style="font-size:0.8rem; font-weight:normal; color:var(--color-primary);">(System-wide View)</span>' : ''; ?></h3>
+            <button class="admin-modal-close" id="close-history-modal-btn">&times;</button>
+        </div>
+
+        <div class="history-filter-bar">
+            <input type="text" id="history-search-input" placeholder="Filter by user, library, location, or file..." />
+        </div>
+
+        <div class="history-table-wrapper">
+            <table class="history-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?><th>User</th><?php endif; ?>
+                        <th>Library : Location</th>
+                        <th>Barcodes / Issues</th>
+                        <th>Files & Downloads</th>
+                    </tr>
+                </thead>
+                <tbody id="history-table-body">
+                    <tr><td colspan="5" style="text-align:center;">Loading history...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
 <!-- ===== Progress Overlay ===== -->
 <div id="loading">
@@ -1084,6 +1224,89 @@ $('#btn-reset-users').on('click', function() {
     });
 });
 <?php endif; ?>
+
+// ===== Run History Modal JS =====
+var _historyData = [];
+var _isAdmin = <?php echo (!empty($isSuperAdmin) && $isSuperAdmin === true) ? 'true' : 'false'; ?>;
+
+function renderHistoryTable(runs) {
+    var $tbody = $('#history-table-body');
+    $tbody.empty();
+    if (!runs || runs.length === 0) {
+        $tbody.append('<tr><td colspan="' + (_isAdmin ? 5 : 4) + '" style="text-align:center;">No inventory runs recorded yet.</td></tr>');
+        return;
+    }
+
+    runs.forEach(function(r) {
+        var userCol = _isAdmin ? '<td><span class="badge-role badge-user">' + (r.user || 'Unknown') + '</span></td>' : '';
+        var inputLink = r.upload_file ? '<a href="runHistoryAPI.php?action=download&type=input&id=' + r.id + '" class="btn-download-sm btn-download-input" title="Download Input .xlsx">📥 Input .xlsx</a>' : '';
+        var csvLink = r.output_file ? '<a href="runHistoryAPI.php?action=download&type=output&id=' + r.id + '" class="btn-download-sm btn-download-csv" title="Download Output CSV">📊 Output .csv</a>' : '';
+
+        $tbody.append(
+            '<tr>' +
+                '<td><strong>' + (r.formatted_date || r.timestamp) + '</strong></td>' +
+                userCol +
+                '<td>' + (r.library || '') + ' : ' + (r.location || '') + '</td>' +
+                '<td>Processed <strong>' + (r.barcode_count || 0) + '</strong> &middot; <span style="color:var(--color-danger);font-weight:600;">' + (r.problem_count || 0) + ' issues</span></td>' +
+                '<td><div style="display:flex;gap:0.35rem;">' + csvLink + inputLink + '</div></td>' +
+            '</tr>'
+        );
+    });
+}
+
+function fetchRunHistory() {
+    $.ajax({
+        url: 'runHistoryAPI.php',
+        data: { action: 'list' },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                _historyData = res.runs || [];
+                filterAndRenderHistory();
+            }
+        }
+    });
+}
+
+function filterAndRenderHistory() {
+    var q = $('#history-search-input').val().toLowerCase().trim();
+    if (!q) {
+        renderHistoryTable(_historyData);
+        return;
+    }
+    var filtered = _historyData.filter(function(r) {
+        return (r.user && r.user.toLowerCase().indexOf(q) !== -1) ||
+               (r.library && r.library.toLowerCase().indexOf(q) !== -1) ||
+               (r.location && r.location.toLowerCase().indexOf(q) !== -1) ||
+               (r.original_filename && r.original_filename.toLowerCase().indexOf(q) !== -1) ||
+               (r.output_filename && r.output_filename.toLowerCase().indexOf(q) !== -1) ||
+               (r.formatted_date && r.formatted_date.toLowerCase().indexOf(q) !== -1);
+    });
+    renderHistoryTable(filtered);
+}
+
+$('#history-search-input').on('input', filterAndRenderHistory);
+
+$('#open-history-modal-btn').on('click', function() {
+    $('#history-modal').addClass('active');
+    fetchRunHistory();
+});
+
+$('#close-history-modal-btn').on('click', function() {
+    $('#history-modal').removeClass('active');
+});
+
+$('#history-modal').on('click', function(e) {
+    if (e.target === this) {
+        $('#history-modal').removeClass('active');
+    }
+});
+
+// Auto-open history modal if requested via URL param (e.g. index.php?show_history=1)
+if (window.location.search.indexOf('show_history=1') !== -1) {
+    $('#history-modal').addClass('active');
+    fetchRunHistory();
+}
 </script>
 
 </body>

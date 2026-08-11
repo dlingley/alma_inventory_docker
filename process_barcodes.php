@@ -567,6 +567,29 @@ if (isset($_POST['submit'])) {
         $total_problems = $orderProblemCount + $cnTypeProblemCount + $tempProblemCount + $requestProblemCount + $locationProblemCount + $libraryProblemCount + $policyProblemCount + $typeProblemCount;
         $barcode_count = $num_rows - 1;
 
+        // Archive uploaded file & record run in history
+        require_once __DIR__ . '/history_manager.php';
+        $archiveUploadDir = __DIR__ . '/cache/uploads';
+        if (!is_dir($archiveUploadDir)) {
+            @mkdir($archiveUploadDir, 0775, true);
+        }
+        $origName = $_FILES['file']['name'] ?? 'barcodes.xlsx';
+        $archiveUploadFilename = 'upload_' . date('Ymd_His') . '_' . preg_replace('/[^a-zA-Z0-9_.-]/', '', $origName);
+        $archiveUploadPath = 'cache/uploads/' . $archiveUploadFilename;
+        @copy("cache/upload/" . $storagename, __DIR__ . '/' . $archiveUploadPath);
+
+        recordRun([
+            'user' => $loggedInUser,
+            'library' => $_POST['library'] ?? '',
+            'location' => $_POST['location'] ?? '',
+            'original_filename' => $origName,
+            'upload_file' => $archiveUploadPath,
+            'output_filename' => $csv_output_filename,
+            'output_file' => 'cache/output/' . $csv_output_filename,
+            'barcode_count' => $barcode_count,
+            'problem_count' => $total_problems
+        ]);
+
         echo '<header class="header">';
         if (!empty($loggedInUser)) {
             echo '  <div class="user-bar">';
@@ -586,6 +609,7 @@ if (isset($_POST['submit'])) {
         echo '  <div class="barcode-count">Processed <strong>' . $barcode_count . '</strong> barcodes &middot; <strong>' . $total_problems . '</strong> issues found</div>';
         echo '  <div style="display:flex;gap:0.5rem;">';
         echo '    <a href="index.php" class="action-btn action-btn-outline">← Run New File</a>';
+        echo '    <a href="index.php?show_history=1" class="action-btn action-btn-outline">📜 History</a>';
         echo '    <a href="cache/output/' . $csv_output_filename . '" class="action-btn action-btn-primary">↓ Download CSV</a>';
         echo '  </div>';
         echo '</div>';

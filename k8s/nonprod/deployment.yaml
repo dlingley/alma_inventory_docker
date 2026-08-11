@@ -71,6 +71,8 @@ spec:
               mountPath: /etc/saml/allowed_users.txt
               subPath: allowed_users.txt
               readOnly: true
+            - name: app-cache
+              mountPath: /srv/app/cache
           resources:
             requests:
               memory: "128Mi"
@@ -85,6 +87,9 @@ spec:
         - name: allowed-users
           configMap:
             name: lib-inventory-allowed-users
+        - name: app-cache
+          persistentVolumeClaim:
+            claimName: lib-inventory-cache-pvc
       imagePullSecrets:
         - name: harbor-nonprod-secret
 
@@ -127,3 +132,19 @@ spec:
                 name: lib-inventory
                 port:
                   number: 80
+
+---
+
+# --- PersistentVolumeClaim for Cache (History, Barcodes, Outputs, Users) ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lib-inventory-cache-pvc
+  namespace: lib-inventory-nonprod
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
