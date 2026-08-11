@@ -14,7 +14,7 @@ $isAuthenticated = isset($_SESSION['auth_status']) && $_SESSION['auth_status'] =
 
 if (!$isAuthenticated) {
     $scriptName = basename($_SERVER['SCRIPT_NAME'] ?? '');
-    $isApiRequest = in_array($scriptName, ['almaLocationsAPI.php', 'almaBarcodeAPI.php', 'getProgress.php', 'adminUsersAPI.php', 'runHistoryAPI.php'], true)
+    $isApiRequest = in_array($scriptName, ['almaLocationsAPI.php', 'almaBarcodeAPI.php', 'getProgress.php', 'adminUsersAPI.php', 'runHistoryAPI.php', 'adminCacheAPI.php'], true)
         || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
         || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
 

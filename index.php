@@ -144,6 +144,22 @@ if (empty($libraries)) {
             background: rgba(255, 255, 255, 0.3);
             transform: translateY(-1px);
         }
+        .user-bar .cache-btn {
+            background: rgba(16, 185, 129, 0.85);
+            color: #ffffff;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font);
+        }
+        .user-bar .cache-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
         .user-bar .admin-btn {
             background: rgba(59, 130, 246, 0.85);
             color: #ffffff;
@@ -160,6 +176,84 @@ if (empty($libraries)) {
             background: #2563eb;
             transform: translateY(-1px);
         }
+
+        /* ===== Cache Manager Modal ===== */
+        #cache-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            z-index: 1040;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        #cache-modal.active { display: flex; }
+        .cache-modal-card {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 95%;
+            max-width: 860px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        .cache-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .cache-card-item {
+            background: var(--color-bg);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .cache-card-title {
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--color-text);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .cache-stat-val {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--color-primary);
+        }
+        .cache-stat-sub {
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.25rem;
+            margin-bottom: 1rem;
+        }
+        .btn-cache-action {
+            width: 100%;
+            padding: 0.45rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font);
+            margin-top: 0.25rem;
+        }
+        .btn-cache-prune { background: #e0f2fe; color: #0369a1; }
+        .btn-cache-prune:hover { background: #bae6fd; }
+        .btn-cache-purge { background: #fee2e2; color: #dc2626; }
+        .btn-cache-purge:hover { background: #fca5a5; }
 
         /* ===== Run History Modal ===== */
         #history-modal {
@@ -765,6 +859,7 @@ if (empty($libraries)) {
         <span class="user-info">👤 <strong><?php echo htmlspecialchars($loggedInUser); ?></strong></span>
         <button id="open-history-modal-btn" class="history-btn">📜 History</button>
         <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
+        <button id="open-cache-modal-btn" class="cache-btn">💾 Cache Manager</button>
         <button id="open-user-modal-btn" class="admin-btn">⚙️ Manage Users</button>
         <?php endif; ?>
         <a href="/saml/logout" class="logout-btn">Log Out</a>
@@ -819,6 +914,83 @@ if (empty($libraries)) {
 </div>
 
 <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
+<!-- ===== Cache Manager Modal ===== -->
+<div id="cache-modal">
+    <div class="cache-modal-card">
+        <div class="admin-modal-header">
+            <h3>💾 Cache Storage Management</h3>
+            <button class="admin-modal-close" id="close-cache-modal-btn">&times;</button>
+        </div>
+
+        <div style="background:var(--color-bg); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--color-border); margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+                <span style="font-size:0.875rem; color:var(--color-text-secondary);">Total PVC Cache Storage:</span>
+                <strong id="cache-total-size" style="font-size:1.25rem; color:var(--color-primary); margin-left:0.5rem;">0 B</strong>
+            </div>
+            <div>
+                <span style="font-size:0.875rem; color:var(--color-text-secondary);">Total Files:</span>
+                <strong id="cache-total-count" style="font-size:1.25rem; color:var(--color-text); margin-left:0.5rem;">0</strong>
+            </div>
+        </div>
+
+        <div class="cache-grid">
+            <!-- Barcodes Cache Card -->
+            <div class="cache-card-item">
+                <div>
+                    <div class="cache-card-title">🏷️ Barcode XML Cache</div>
+                    <div class="cache-stat-val" id="stat-barcode-count">0</div>
+                    <div class="cache-stat-sub" id="stat-barcode-sub">Size: 0 B &middot; Oldest: N/A</div>
+                </div>
+                <div>
+                    <button type="button" class="btn-cache-action btn-cache-prune" id="btn-prune-barcodes-30">🧹 Prune Expired (>30 days)</button>
+                    <button type="button" class="btn-cache-action btn-cache-purge" id="btn-clear-barcodes-all">🗑️ Clear All Barcode Cache</button>
+                </div>
+            </div>
+
+            <!-- Report CSV Archives Card -->
+            <div class="cache-card-item">
+                <div>
+                    <div class="cache-card-title">📊 Report CSV Archives</div>
+                    <div class="cache-stat-val" id="stat-output-count">0</div>
+                    <div class="cache-stat-sub" id="stat-output-sub">Size: 0 B &middot; Oldest: N/A</div>
+                </div>
+                <div>
+                    <button type="button" class="btn-cache-action btn-cache-prune" id="btn-prune-archives-90">🧹 Prune Archives (>90 days)</button>
+                </div>
+            </div>
+
+            <!-- Archived Input Files Card -->
+            <div class="cache-card-item">
+                <div>
+                    <div class="cache-card-title">📥 Uploaded Input Files</div>
+                    <div class="cache-stat-val" id="stat-uploads-count">0</div>
+                    <div class="cache-stat-sub" id="stat-uploads-sub">Size: 0 B &middot; Oldest: N/A</div>
+                </div>
+                <div>
+                    <span style="font-size:0.75rem; color:var(--color-text-secondary);">Pruned automatically with reports (>90d)</span>
+                </div>
+            </div>
+
+            <!-- Staging Uploads Card -->
+            <div class="cache-card-item">
+                <div>
+                    <div class="cache-card-title">📁 Temporary Staging</div>
+                    <div class="cache-stat-val" id="stat-staging-count">0</div>
+                    <div class="cache-stat-sub" id="stat-staging-sub">Size: 0 B</div>
+                </div>
+                <div>
+                    <button type="button" class="btn-cache-action btn-cache-purge" id="btn-purge-staging">🧹 Purge Staging Files</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-modal-footer">
+            <button type="button" class="action-btn action-btn-outline" id="btn-refresh-cache-stats">🔄 Refresh Metrics</button>
+            <span style="font-size:0.75rem; color:var(--color-text-secondary);">Superadmin Cache Operations</span>
+        </div>
+    </div>
+</div>
+
 <!-- ===== User Management Modal ===== -->
 <div id="user-modal">
     <div class="admin-modal-card">
@@ -1307,6 +1479,92 @@ if (window.location.search.indexOf('show_history=1') !== -1) {
     $('#history-modal').addClass('active');
     fetchRunHistory();
 }
+
+<?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
+// ===== Cache Manager Modal JS =====
+function fetchCacheStats() {
+    $.ajax({
+        url: 'adminCacheAPI.php',
+        data: { action: 'stats' },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success && res.stats) {
+                var s = res.stats;
+                $('#cache-total-size').text(s.formatted_total_size || '0 B');
+                $('#cache-total-count').text(s.total_count || 0);
+
+                var b = s.categories.barcodes || {};
+                $('#stat-barcode-count').text(b.count || 0);
+                $('#stat-barcode-sub').html('Size: ' + (b.formatted_size || '0 B') + ' &middot; Oldest: ' + (b.oldest_date || 'N/A'));
+
+                var o = s.categories.output || {};
+                $('#stat-output-count').text(o.count || 0);
+                $('#stat-output-sub').html('Size: ' + (o.formatted_size || '0 B') + ' &middot; Oldest: ' + (o.oldest_date || 'N/A'));
+
+                var u = s.categories.uploads || {};
+                $('#stat-uploads-count').text(u.count || 0);
+                $('#stat-uploads-sub').html('Size: ' + (u.formatted_size || '0 B') + ' &middot; Oldest: ' + (u.oldest_date || 'N/A'));
+
+                var st = s.categories.staging || {};
+                $('#stat-staging-count').text(st.count || 0);
+                $('#stat-staging-sub').html('Size: ' + (st.formatted_size || '0 B'));
+            }
+        }
+    });
+}
+
+function runCacheAction(action, confirmMsg) {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+
+    $.ajax({
+        url: 'adminCacheAPI.php',
+        method: 'POST',
+        data: { action: action },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                alert(res.message || 'Cache action completed.');
+                fetchCacheStats();
+            } else {
+                alert(res.error || 'Failed to complete cache operation.');
+            }
+        }
+    });
+}
+
+$('#open-cache-modal-btn').on('click', function() {
+    $('#cache-modal').addClass('active');
+    fetchCacheStats();
+});
+
+$('#close-cache-modal-btn').on('click', function() {
+    $('#cache-modal').removeClass('active');
+});
+
+$('#cache-modal').on('click', function(e) {
+    if (e.target === this) {
+        $('#cache-modal').removeClass('active');
+    }
+});
+
+$('#btn-refresh-cache-stats').on('click', fetchCacheStats);
+
+$('#btn-prune-barcodes-30').on('click', function() {
+    runCacheAction('prune_barcodes_30', 'Prune barcode cache files older than 30 days?');
+});
+
+$('#btn-clear-barcodes-all').on('click', function() {
+    runCacheAction('clear_barcodes_all', 'Are you sure you want to clear ALL cached barcode XML files?');
+});
+
+$('#btn-prune-archives-90').on('click', function() {
+    runCacheAction('prune_archives_90', 'Prune report CSVs and uploaded input files older than 90 days?');
+});
+
+$('#btn-purge-staging').on('click', function() {
+    runCacheAction('purge_staging', 'Purge all temporary files from staging directory?');
+});
+<?php endif; ?>
 </script>
 
 </body>
