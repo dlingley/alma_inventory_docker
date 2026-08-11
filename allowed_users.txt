@@ -1,0 +1,8 @@
+employee@purdue.edu
+member@purdue.edu
+dlingley:admin
+dlingley@purdue.edu:admin
+subrama
+subrama@purdue.edu
+bmeaghe2
+bmeaghe2@purdue.edu

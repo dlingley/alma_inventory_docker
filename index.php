@@ -128,6 +128,166 @@ if (empty($libraries)) {
             background: #dc2626;
             transform: translateY(-1px);
         }
+        .user-bar .admin-btn {
+            background: rgba(59, 130, 246, 0.85);
+            color: #ffffff;
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all var(--transition);
+            font-family: var(--font);
+        }
+        .user-bar .admin-btn:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        /* ===== Admin User Modal ===== */
+        #user-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            z-index: 1050;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
+        }
+        #user-modal.active { display: flex; }
+        .admin-modal-card {
+            background: var(--color-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 92%;
+            max-width: 620px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .admin-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .admin-modal-header h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+        .admin-modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+        }
+        .admin-add-form {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 0.75rem;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            background: var(--color-bg);
+            padding: 0.875rem;
+            border-radius: var(--radius-md);
+        }
+        .admin-add-form input[type="text"] {
+            padding: 0.5rem 0.75rem;
+            border: 1.5px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            font-family: var(--font);
+            font-size: 0.875rem;
+        }
+        .admin-add-form label {
+            font-size: 0.8125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            margin: 0;
+            cursor: pointer;
+        }
+        .btn-add-user {
+            padding: 0.5rem 1rem;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.8125rem;
+            cursor: pointer;
+            font-family: var(--font);
+        }
+        .btn-add-user:hover { background: var(--color-primary-hover); }
+        .admin-user-table-wrapper {
+            overflow-y: auto;
+            flex: 1;
+            margin-bottom: 1rem;
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            max-height: 280px;
+        }
+        .admin-user-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+            text-align: left;
+        }
+        .admin-user-table th, .admin-user-table td {
+            padding: 0.625rem 0.875rem;
+            border-bottom: 1px solid var(--color-border);
+        }
+        .admin-user-table th {
+            background: var(--color-bg);
+            font-weight: 600;
+            color: var(--color-text-secondary);
+        }
+        .badge-role {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--radius-full);
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-admin { background: #dbeafe; color: #1e40af; }
+        .badge-user { background: #f1f5f9; color: #475569; }
+        .badge-source { font-size: 0.7rem; color: var(--color-text-secondary); }
+        .btn-remove-user {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn-remove-user:hover { background: #fca5a5; }
+        .admin-modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--color-border);
+        }
+        .btn-reset-users {
+            background: none;
+            border: 1px solid var(--color-border);
+            padding: 0.375rem 0.75rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            color: var(--color-text-secondary);
+            cursor: pointer;
+        }
+        .btn-reset-users:hover { border-color: var(--color-danger); color: var(--color-danger); }
         .header::before {
             content: '';
             position: absolute;
@@ -495,6 +655,9 @@ if (empty($libraries)) {
     <?php if (!empty($loggedInUser)): ?>
     <div class="user-bar">
         <span class="user-info">👤 <strong><?php echo htmlspecialchars($loggedInUser); ?></strong></span>
+        <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
+        <button id="open-user-modal-btn" class="admin-btn">⚙️ Manage Users</button>
+        <?php endif; ?>
         <a href="/saml/logout" class="logout-btn">Log Out</a>
     </div>
     <?php endif; ?>
@@ -514,6 +677,48 @@ if (empty($libraries)) {
         <progress id="pg" max="100" value="0" style="display:none;"></progress>
     </div>
 </div>
+
+<?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
+<!-- ===== User Management Modal ===== -->
+<div id="user-modal">
+    <div class="admin-modal-card">
+        <div class="admin-modal-header">
+            <h3>⚙️ User Access Management</h3>
+            <button class="admin-modal-close" id="close-user-modal-btn">&times;</button>
+        </div>
+
+        <form id="form-add-user" class="admin-add-form">
+            <input type="text" id="new-user-id" placeholder="Username or email (e.g. user@purdue.edu)" required />
+            <label>
+                <input type="checkbox" id="new-user-is-admin" />
+                Make Superadmin
+            </label>
+            <button type="submit" class="btn-add-user">+ Add User</button>
+        </form>
+
+        <div class="admin-user-table-wrapper">
+            <table class="admin-user-table">
+                <thead>
+                    <tr>
+                        <th>Identifier</th>
+                        <th>Role</th>
+                        <th>Source</th>
+                        <th style="text-align:right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="user-table-body">
+                    <tr><td colspan="4" style="text-align:center;">Loading users...</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="admin-modal-footer">
+            <button type="button" class="btn-reset-users" id="btn-reset-users">Reset to ConfigMap Defaults</button>
+            <span style="font-size:0.75rem; color:var(--color-text-secondary);">Changes take effect immediately</span>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <!-- ===== Main Card ===== -->
 <main class="card">
@@ -753,10 +958,127 @@ function progressLoop(barName) {
         },
         error: function(xhr, status, err) {
             console.log("pERROR: " + err + " — retrying...");
-            setTimeout(function() { progressLoop(barName); }, 2000);
+<?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
+// ===== User Management Modal JS =====
+function renderUserTable(users) {
+    var $tbody = $('#user-table-body');
+    $tbody.empty();
+    if (!users || users.length === 0) {
+        $tbody.append('<tr><td colspan="4" style="text-align:center;">No allowed users configured.</td></tr>');
+        return;
+    }
+    users.forEach(function(u) {
+        var roleBadge = u.role === 'admin' 
+            ? '<span class="badge-role badge-admin">Admin</span>' 
+            : '<span class="badge-role badge-user">User</span>';
+        var sourceBadge = u.source === 'overlay' 
+            ? '<span class="badge-source">(Custom)</span>' 
+            : '<span class="badge-source">(ConfigMap)</span>';
+        var removeBtn = '<button type="button" class="btn-remove-user" data-id="' + u.identifier + '">Remove</button>';
+
+        $tbody.append(
+            '<tr>' +
+                '<td><strong>' + u.identifier + '</strong></td>' +
+                '<td>' + roleBadge + '</td>' +
+                '<td>' + sourceBadge + '</td>' +
+                '<td style="text-align:right;">' + removeBtn + '</td>' +
+            '</tr>'
+        );
+    });
+}
+
+function fetchUsers() {
+    $.ajax({
+        url: 'adminUsersAPI.php',
+        data: { action: 'list' },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                renderUserTable(res.users);
+            }
         }
     });
 }
+
+$('#open-user-modal-btn').on('click', function() {
+    $('#user-modal').addClass('active');
+    fetchUsers();
+});
+
+$('#close-user-modal-btn').on('click', function() {
+    $('#user-modal').removeClass('active');
+});
+
+$('#user-modal').on('click', function(e) {
+    if (e.target === this) {
+        $('#user-modal').removeClass('active');
+    }
+});
+
+$('#form-add-user').on('submit', function(e) {
+    e.preventDefault();
+    var userId = $('#new-user-id').val().trim();
+    var isAdmin = $('#new-user-is-admin').is(':checked');
+    if (!userId) return;
+
+    $.ajax({
+        url: 'adminUsersAPI.php',
+        method: 'POST',
+        data: {
+            action: 'add',
+            identifier: userId,
+            role: isAdmin ? 'admin' : 'user'
+        },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                $('#new-user-id').val('');
+                $('#new-user-is-admin').prop('checked', false);
+                renderUserTable(res.users);
+            } else {
+                alert(res.error || 'Failed to add user');
+            }
+        }
+    });
+});
+
+$(document).on('click', '.btn-remove-user', function() {
+    var userId = $(this).data('id');
+    if (!confirm('Are you sure you want to remove access for ' + userId + '?')) return;
+
+    $.ajax({
+        url: 'adminUsersAPI.php',
+        method: 'POST',
+        data: { action: 'remove', identifier: userId },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                renderUserTable(res.users);
+            } else {
+                alert(res.error || 'Failed to remove user');
+            }
+        }
+    });
+});
+
+$('#btn-reset-users').on('click', function() {
+    if (!confirm('Reset custom user changes and revert to base ConfigMap users?')) return;
+
+    $.ajax({
+        url: 'adminUsersAPI.php',
+        method: 'POST',
+        data: { action: 'reset' },
+        dataType: 'json',
+        success: function(res) {
+            if (res.success) {
+                renderUserTable(res.users);
+            } else {
+                alert(res.error || 'Failed to reset users');
+            }
+        }
+    });
+});
+<?php endif; ?>
 </script>
 
 </body>

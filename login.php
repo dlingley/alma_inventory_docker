@@ -4,6 +4,8 @@
  * Included by application entry points (index.php, process_barcodes.php, API scripts)
  */
 
+require_once __DIR__ . '/user_manager.php';
+
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -12,7 +14,7 @@ $isAuthenticated = isset($_SESSION['auth_status']) && $_SESSION['auth_status'] =
 
 if (!$isAuthenticated) {
     $scriptName = basename($_SERVER['SCRIPT_NAME'] ?? '');
-    $isApiRequest = in_array($scriptName, ['almaLocationsAPI.php', 'almaBarcodeAPI.php', 'getProgress.php'], true)
+    $isApiRequest = in_array($scriptName, ['almaLocationsAPI.php', 'almaBarcodeAPI.php', 'getProgress.php', 'adminUsersAPI.php'], true)
         || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false)
         || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
 
@@ -79,7 +81,23 @@ if (empty($loggedInUser)) {
     $loggedInUser = 'Authenticated User';
 }
 
+// Compute Superadmin status for session
+$candidates = [$_SESSION['samlUser'] ?? ''];
+if (!empty($_SESSION['samlUserAttributes']) && is_array($_SESSION['samlUserAttributes'])) {
+    foreach ($_SESSION['samlUserAttributes'] as $attrKey => $attrValues) {
+        if (is_array($attrValues)) {
+            foreach ($attrValues as $val) {
+                $candidates[] = $val;
+            }
+        } elseif (is_string($attrValues)) {
+            $candidates[] = $attrValues;
+        }
+    }
+}
+$isSuperAdmin = isUserAdmin($candidates);
+
 // Release PHP session lock so concurrent AJAX requests (like getProgress.php) aren't blocked by long-running processes
 session_write_close();
+
 
 

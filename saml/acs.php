@@ -32,43 +32,21 @@ try {
     $nameId = $auth->getNameId();
     $attributes = $auth->getAttributes();
 
-    // Read allow-list file (Fail Closed)
-    $allowListPath = getenv('ALLOWED_USERS_FILE') ?: '/srv/app/allowed_users.txt';
-    $isAuthorized = false;
+require_once __DIR__ . '/../user_manager.php';
 
-    if (file_exists($allowListPath) && is_readable($allowListPath)) {
-        $lines = file($allowListPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        if ($lines !== false && count($lines) > 0) {
-            $allowedUsers = array_map(function($line) {
-                return strtolower(trim($line));
-            }, $lines);
-
-            // Candidate identifiers to match
-            $candidates = [strtolower(trim($nameId))];
-
-            // Add attributes (email, mail, eduPersonPrincipalName, uid, employeeID, etc.)
-            foreach ($attributes as $attrKey => $attrValues) {
-                if (is_array($attrValues)) {
-                    foreach ($attrValues as $val) {
-                        $candidates[] = strtolower(trim($val));
-                    }
-                } elseif (is_string($attrValues)) {
-                    $candidates[] = strtolower(trim($attrValues));
-                }
+    // Candidate identifiers to match
+    $candidates = [strtolower(trim($nameId))];
+    foreach ($attributes as $attrKey => $attrValues) {
+        if (is_array($attrValues)) {
+            foreach ($attrValues as $val) {
+                $candidates[] = strtolower(trim($val));
             }
-
-            foreach ($candidates as $candidate) {
-                if (!empty($candidate) && in_array($candidate, $allowedUsers, true)) {
-                    $isAuthorized = true;
-                    break;
-                }
-            }
-        } else {
-            error_log('SAML Auth Authorization: Allow-list file is empty. Failing closed.');
+        } elseif (is_string($attrValues)) {
+            $candidates[] = strtolower(trim($attrValues));
         }
-    } else {
-        error_log('SAML Auth Authorization: Allow-list file missing or unreadable at ' . $allowListPath . '. Failing closed.');
     }
+
+    $isAuthorized = isUserAllowed($candidates);
 
     if ($isAuthorized) {
         $_SESSION['samlUser'] = $nameId;
