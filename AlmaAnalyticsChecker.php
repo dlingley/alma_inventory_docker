@@ -40,7 +40,7 @@ class AlmaAnalyticsChecker
             'xmlns:sawx="com.siebel.analytics.web/expression/v1.1" ' .
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
             'xmlns:xsd="http://www.w3.org/2001/XMLSchema">' .
-            '<sawx:expr xsi:type="sawx:sqlExpression">"Physical Items"."Barcode"</sawx:expr>';
+            '<sawx:expr xsi:type="sawx:columnFormula">"Physical Item Details"."Barcode"</sawx:expr>';
 
         foreach ($barcodes as $bc) {
             $xml .= '<sawx:expr xsi:type="xsd:string">' . htmlspecialchars($bc, ENT_QUOTES | ENT_XML1, 'UTF-8') . '</sawx:expr>';
@@ -159,15 +159,34 @@ class AlmaAnalyticsChecker
             $rowArray = (array)$row;
             $cols = array_values($rowArray);
 
-            $barcode = trim($row->Column0 ?? $row->Barcode ?? $cols[0] ?? '');
-            $callNo  = trim($row->Column1 ?? $row->CallNumber ?? $cols[1] ?? '');
-            $normKey = trim($row->Column2 ?? $row->NormalizedCallNumber ?? $cols[2] ?? '');
+            $barcode = '';
+            $callNo  = '';
+            $normKey = '';
+
+            if (isset($row->Barcode)) {
+                $barcode = (string)$row->Barcode;
+                $callNo  = (string)($row->CallNumber ?? '');
+                $normKey = (string)($row->NormalizedCallNumber ?? '');
+            } elseif (isset($row->Column3)) {
+                // Purdue layout: Column0=idx, Column1=NormKey, Column2=PermanentCallNo, Column3=Barcode
+                $barcode = (string)$row->Column3;
+                $callNo  = (string)$row->Column2;
+                $normKey = (string)$row->Column1;
+            } else {
+                // Default 3-column layout: Column0=Barcode, Column1=CallNo, Column2=NormKey
+                $barcode = (string)($row->Column0 ?? $cols[0] ?? '');
+                $callNo  = (string)($row->Column1 ?? $cols[1] ?? '');
+                $normKey = (string)($row->Column2 ?? $cols[2] ?? '');
+            }
+
+            // Strip any leading quotes, commas, or formatting
+            $barcode = trim(ltrim($barcode, " \t\n\r\0\x0B,=\"'"));
 
             if ($barcode !== '') {
                 $rows[] = [
-                    'barcode'          => (string)$barcode,
-                    'call_number'      => (string)$callNo,
-                    'norm_call_number' => (string)$normKey
+                    'barcode'          => $barcode,
+                    'call_number'      => trim($callNo),
+                    'norm_call_number' => trim($normKey)
                 ];
             }
         }
@@ -193,11 +212,15 @@ class AlmaAnalyticsChecker
         // Normalize call numbers locally
         $localProcessed = [];
         foreach ($items as $idx => $item) {
-            $cn = $item['call_number'] ?? '';
-            $normLocal = ($callNumberType === 'Dewey') ? normalizeDewey($cn) : NormalizeLC($cn);
-
             $bc = $item['barcode'] ?? ('item_' . $idx);
             $almaData = $analyticsMap[$bc] ?? null;
+
+            $cn = $item['call_number'] ?? '';
+            if (($cn === '' || $cn === 'FETCH_FROM_ALMA') && $almaData && !empty($almaData['call_number'])) {
+                $cn = $almaData['call_number'];
+            }
+
+            $normLocal = ($callNumberType === 'Dewey') ? normalizeDewey($cn) : NormalizeLC($cn);
 
             $localProcessed[] = [
                 'orig_index'        => $idx,
