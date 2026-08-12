@@ -576,7 +576,29 @@ if (isset($_POST['submit'])) {
         $archiveUploadPath = 'cache/uploads/' . $archiveUploadFilename;
         @copy("cache/upload/" . $storagename, __DIR__ . '/' . $archiveUploadPath);
 
-        recordRun([
+        $analyticsReport = null;
+        $doAnalyticsCheck = (($_POST['check_analytics'] ?? 'false') === 'true') && defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK;
+
+        if ($doAnalyticsCheck && !empty($shelflist)) {
+            require_once __DIR__ . '/AlmaAnalyticsChecker.php';
+            $itemsToCheck = [];
+            foreach ($shelflist as $item) {
+                if (!empty($item['barcode'])) {
+                    $itemsToCheck[] = [
+                        'barcode'     => preg_replace('/[^0-9A-Za-z]/', '', $item['barcode']),
+                        'call_number' => $item['call_number'] ?? '',
+                        'title'       => $item['title'] ?? ''
+                    ];
+                }
+            }
+            if (!empty($itemsToCheck)) {
+                $cnType = (strtolower($_POST['cnType'] ?? 'lc') === 'dewey') ? 'Dewey' : 'LC';
+                $checker = new AlmaAnalyticsChecker();
+                $analyticsReport = $checker->compare($itemsToCheck, $cnType);
+            }
+        }
+
+        $runData = [
             'user' => $loggedInUser,
             'library' => $_POST['library'] ?? '',
             'location' => $_POST['location'] ?? '',
@@ -586,7 +608,16 @@ if (isset($_POST['submit'])) {
             'output_file' => 'cache/output/' . $csv_output_filename,
             'barcode_count' => $barcode_count,
             'problem_count' => $total_problems
-        ]);
+        ];
+
+        if ($analyticsReport) {
+            $runData['analytics_match_percent'] = $analyticsReport['rank_match_percent'];
+            $runData['analytics_rank_matches']  = $analyticsReport['rank_matches'];
+            $runData['analytics_found']         = $analyticsReport['analytics_found'];
+            $runData['analytics_discrepancies'] = count($analyticsReport['discrepancies'] ?? []);
+        }
+
+        recordRun($runData);
 
         echo '<header class="header">';
         if (!empty($loggedInUser)) {
@@ -623,6 +654,26 @@ if (isset($_POST['submit'])) {
         echo '  <div class="stat-card stat-warning"><div class="stat-value">' . $policyProblemCount . '</div><div class="stat-label">Policy Issues</div></div>';
         echo '  <div class="stat-card"><div class="stat-value">' . $typeProblemCount . '</div><div class="stat-label">Type Issues</div></div>';
         echo '</div>';
+
+        // Alma Analytics Verification Card (if executed)
+        if ($analyticsReport) {
+            $isFullMatch = ($analyticsReport['rank_match_percent'] >= 100);
+            $cardStyle = $isFullMatch ? 'background:#f0fdf4; border:1px solid #bbf7d0; color:#166534;' : 'background:#fffbeb; border:1px solid #fde68a; color:#92400e;';
+            $badgeIcon = $isFullMatch ? '✅' : '⚠️';
+            
+            echo '<div style="margin:1rem 0; padding:1.25rem; border-radius:var(--radius-md); ' . $cardStyle . '">';
+            echo '  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">';
+            echo '    <div style="font-weight:600; font-size:1rem;">' . $badgeIcon . ' Alma Analytics Sort Verification</div>';
+            echo '    <div style="font-weight:700; font-size:1.1rem;">' . $analyticsReport['rank_match_percent'] . '% Sequence Match (' . $analyticsReport['rank_matches'] . ' / ' . $analyticsReport['total_items'] . ')</div>';
+            echo '  </div>';
+            echo '  <div style="font-size:0.85rem; margin-top:0.35rem; opacity:0.9;">';
+            echo '    Verified ' . $analyticsReport['analytics_found'] . ' of ' . $analyticsReport['total_items'] . ' items against live Alma Analytics normalized keys.';
+            if (!empty($analyticsReport['api_errors'])) {
+                echo ' <span style="color:#b91c1c; font-weight:600;">(Notice: ' . count($analyticsReport['api_errors']) . ' API warning)</span>';
+            }
+            echo '  </div>';
+            echo '</div>';
+        }
 
         // Range bar
         echo '<div class="range-bar">';

@@ -1135,6 +1135,14 @@ if (empty($libraries)) {
                     <input type="hidden" name="onlyproblems" id="onlyproblems-val" value="false" />
                 </div>
                 <div class="toggle-item">
+                    <span class="toggle-label">⚡ Verify Sort with Alma Analytics</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="toggle-checkanalytics" <?php echo (defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK) ? 'checked="checked"' : ''; ?> />
+                        <span class="slider"></span>
+                    </label>
+                    <input type="hidden" name="check_analytics" id="checkanalytics-val" value="<?php echo (defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK) ? 'true' : 'false'; ?>" />
+                </div>
+                <div class="toggle-item">
                     <span class="toggle-label">Clear Cache</span>
                     <label class="toggle">
                         <input type="checkbox" id="toggle-clearcache" />
@@ -1187,6 +1195,7 @@ $(document).ready(function() {
     $('#toggle-onlyorder').change(function()    { $('#onlyorder-val').val(this.checked ? 'true' : 'false'); });
     $('#toggle-onlyother').change(function()    { $('#onlyother-val').val(this.checked ? 'true' : 'false'); });
     $('#toggle-onlyproblems').change(function() { $('#onlyproblems-val').val(this.checked ? 'true' : 'false'); });
+    $('#toggle-checkanalytics').change(function() { $('#checkanalytics-val').val(this.checked ? 'true' : 'false'); });
     $('#toggle-clearcache').change(function()   { $('#clearCache-val').val(this.checked ? 'true' : 'false'); });
 
     // --- Library → Location AJAX Lookup ---
@@ -1415,12 +1424,21 @@ function renderHistoryTable(runs) {
         var inputLink = r.upload_file ? '<a href="runHistoryAPI.php?action=download&type=input&id=' + r.id + '" class="btn-download-sm btn-download-input" title="Download Input .xlsx">📥 Input .xlsx</a>' : '';
         var csvLink = r.output_file ? '<a href="runHistoryAPI.php?action=download&type=output&id=' + r.id + '" class="btn-download-sm btn-download-csv" title="Download Output CSV">📊 Output .csv</a>' : '';
 
+        var almaBadge = '';
+        if (r.analytics_match_percent !== undefined && r.analytics_match_percent !== null) {
+            if (r.analytics_match_percent >= 100) {
+                almaBadge = ' &middot; <span style="background:#dcfce7;color:#166534;font-size:0.7rem;padding:0.15rem 0.4rem;border-radius:10px;font-weight:600;">100% Alma ✅</span>';
+            } else {
+                almaBadge = ' &middot; <span style="background:#fef3c7;color:#92400e;font-size:0.7rem;padding:0.15rem 0.4rem;border-radius:10px;font-weight:600;">' + r.analytics_match_percent + '% Alma ⚠️</span>';
+            }
+        }
+
         $tbody.append(
             '<tr>' +
                 '<td><strong>' + (r.formatted_date || r.timestamp) + '</strong></td>' +
                 userCol +
                 '<td>' + (r.library || '') + ' : ' + (r.location || '') + '</td>' +
-                '<td>Processed <strong>' + (r.barcode_count || 0) + '</strong> &middot; <span style="color:var(--color-danger);font-weight:600;">' + (r.problem_count || 0) + ' issues</span></td>' +
+                '<td>Processed <strong>' + (r.barcode_count || 0) + '</strong> &middot; <span style="color:var(--color-danger);font-weight:600;">' + (r.problem_count || 0) + ' issues</span>' + almaBadge + '</td>' +
                 '<td><div style="display:flex;gap:0.35rem;">' + csvLink + inputLink + '</div></td>' +
             '</tr>'
         );
