@@ -48,7 +48,7 @@ body {
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
 }
-.header {
+.report-header {
     background: linear-gradient(135deg, var(--color-header) 0%, var(--color-header-accent) 100%);
     padding: 1.5rem 2rem;
     display: flex;
@@ -59,7 +59,7 @@ body {
     position: relative;
     overflow: hidden;
 }
-.header-title-group {
+.report-header-title-group {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -99,16 +99,16 @@ body {
     background: #dc2626;
     transform: translateY(-1px);
 }
-.header::before {
+.report-header::before {
     content: '';
     position: absolute;
     top: -50%; left: -50%; width: 200%; height: 200%;
     background: radial-gradient(circle at 30% 50%, rgba(59,130,246,0.08) 0%, transparent 50%);
     pointer-events: none;
 }
-.header h1 { color: #fff; font-size: 1.5rem; font-weight: 700; position: relative; letter-spacing: -0.02em; }
-.header h1 small { font-weight: 400; font-size: 0.8rem; opacity: 0.6; display: block; margin-top: 0.25rem; }
-.header p { color: rgba(255,255,255,0.6); font-size: 0.8125rem; margin-top: 0.25rem; position: relative; }
+.report-header h1 { color: #fff; font-size: 1.5rem; font-weight: 700; position: relative; letter-spacing: -0.02em; }
+.report-header h1 small { font-weight: 400; font-size: 0.8rem; opacity: 0.6; display: block; margin-top: 0.25rem; }
+.report-header p { color: rgba(255,255,255,0.6); font-size: 0.8125rem; margin-top: 0.25rem; position: relative; }
 
 .container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
 
@@ -654,8 +654,8 @@ if (isset($_POST['submit'])) {
 
         recordRun($runData);
 
-        echo '<header class="header">';
-        echo '  <div class="header-title-group">';
+        echo '<header class="report-header">';
+        echo '  <div class="report-header-title-group">';
         echo '    <h1>📋 Inventory Report</h1>';
         echo '    <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-top:0.2rem;">' . htmlspecialchars($_POST['library'] ?? '') . ':' . htmlspecialchars($_POST['location'] ?? '') . ' &middot; Range ' . substr($first_call, 0, 4) . '–' . substr($last_call, 0, 4) . ' &middot; ' . date('M j, Y') . '</p>';
         echo '  </div>';
@@ -723,7 +723,7 @@ if (isset($_POST['submit'])) {
 
 
 } else {
-    echo '<header class="header">';
+    echo '<header class="report-header">';
     if (!empty($loggedInUser)) {
         echo '  <div class="user-bar">';
         echo '    <span class="user-info">👤 <strong>' . htmlspecialchars($loggedInUser) . '</strong></span>';
