@@ -406,10 +406,10 @@ function parseAnalyticsCsvFile(string $filePath): array
 
         $('#selected_history').on('change', function() {
             var val = $(this).val() || '';
-            if (/dewey/i.test(val) || /400B|7092|7817|8082|5195|6127/i.test(val)) {
-                $('input[name="call_number_type"][value="Dewey"]').prop('checked', true);
+            if (/dewey/i.test(val) || /hss3_|400B|7092|7817|8082|5195|6127/i.test(val)) {
+                $('#call_number_type').val('Dewey');
             } else if (/lc|hss3lc|hss2lc/i.test(val)) {
-                $('input[name="call_number_type"][value="LC"]').prop('checked', true);
+                $('#call_number_type').val('LC');
             }
         });
 
