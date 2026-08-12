@@ -169,7 +169,7 @@ body {
     background: #f8fafc; padding: 0.75rem 0.875rem; text-align: left;
     font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
     color: var(--color-text-secondary); border-bottom: 2px solid var(--color-border);
-    cursor: pointer; user-select: none; white-space: nowrap; position: sticky; top: 0; z-index: 2;
+    cursor: pointer; user-select: none; white-space: nowrap;
 }
 .results-table thead th:hover { color: var(--color-primary); }
 .results-table tbody td { padding: 0.625rem 0.875rem; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
