@@ -26,7 +26,7 @@ class AlmaAnalyticsChecker
     /**
      * Build Siebel/OBIEE Analytics sawx XML filter expression for barcodes
      */
-    public function buildBarcodeFilterXml(array $barcodes, string $columnFormula = '"Physical Item Details"."Barcode"'): string
+    public function buildBarcodeFilterXml(array $barcodes, string $columnFormula = '"Physical Item Details"."Barcode"', string $tagType = 'sawx:sqlExpression'): string
     {
         $barcodes = array_values(array_unique(array_filter(array_map('trim', $barcodes))));
         if (empty($barcodes)) {
@@ -40,7 +40,7 @@ class AlmaAnalyticsChecker
             'xmlns:sawx="com.siebel.analytics.web/expression/v1.1" ' .
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
             'xmlns:xsd="http://www.w3.org/2001/XMLSchema">' .
-            '<sawx:expr xsi:type="sawx:columnFormula">' . $columnFormula . '</sawx:expr>';
+            '<sawx:expr xsi:type="' . $tagType . '">' . $columnFormula . '</sawx:expr>';
 
         foreach ($barcodes as $bc) {
             $xml .= '<sawx:expr xsi:type="xsd:string">' . htmlspecialchars($bc, ENT_QUOTES | ENT_XML1, 'UTF-8') . '</sawx:expr>';

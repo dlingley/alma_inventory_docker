@@ -105,7 +105,7 @@ function parseAnalyticsCsvFile(string $filePath): array
         $titleCol= $headerMap['title'] ?? null;
 
         while (($data = fgetcsv($handle, 0, ',', '"', '\\')) !== false) {
-            $bc = ($bcCol !== null && isset($data[$bcCol])) ? trim(str_replace(['="', '"'], '', $data[$bcCol])) : '';
+            $bc = ($bcCol !== null && isset($data[$bcCol])) ? preg_replace('/[^0-9A-Za-z]/', '', $data[$bcCol]) : '';
             $cn = ($callCol !== null && isset($data[$callCol])) ? trim($data[$callCol]) : '';
             $title = ($titleCol !== null && isset($data[$titleCol])) ? trim($data[$titleCol]) : '';
 
