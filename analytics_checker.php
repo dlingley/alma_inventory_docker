@@ -43,7 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = "File format .$ext is not supported directly for streaming parsing; please upload a .csv file.";
         }
     } elseif ($inputMode === 'history' && !empty($selectedHistory)) {
-        $histPath = __DIR__ . '/tests/fixtures/cache_history/output/' . basename($selectedHistory);
+        $baseName = basename($selectedHistory);
+        $histPath = __DIR__ . '/cache/output/' . $baseName;
+        if (!file_exists($histPath)) {
+            $histPath = __DIR__ . '/tests/fixtures/cache_history/output/' . $baseName;
+        }
+
         if (file_exists($histPath)) {
             $items = parseAnalyticsCsvFile($histPath);
         } else {
@@ -63,14 +68,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Get list of historical fixture files for dropdown
-$historyFiles = glob(__DIR__ . '/tests/fixtures/cache_history/output/*.csv');
+// Get list of historical files for dropdown (checking cache/output as well as test fixtures)
 $historyOptions = [];
-if (is_array($historyFiles)) {
-    foreach ($historyFiles as $hf) {
-        $historyOptions[] = basename($hf);
+$dirsToScan = [
+    __DIR__ . '/cache/output',
+    __DIR__ . '/tests/fixtures/cache_history/output'
+];
+foreach ($dirsToScan as $d) {
+    if (is_dir($d)) {
+        $files = glob($d . '/*.csv');
+        if (is_array($files)) {
+            foreach ($files as $hf) {
+                $bn = basename($hf);
+                if (!in_array($bn, $historyOptions)) {
+                    $historyOptions[] = $bn;
+                }
+            }
+        }
     }
 }
+sort($historyOptions);
 
 function parseAnalyticsCsvFile(string $filePath): array
 {
