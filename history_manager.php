@@ -60,6 +60,19 @@ function recordRun($data) {
 
 function getRunHistoryForUser($userIdentifier = null, $isSuperAdmin = false) {
     $all = loadRunHistory();
+    $tz = new DateTimeZone(getenv('APP_TIMEZONE') ?: 'America/Indiana/Indianapolis');
+
+    foreach ($all as &$entry) {
+        if (!empty($entry['timestamp'])) {
+            try {
+                $dt = new DateTime($entry['timestamp']);
+                $dt->setTimezone($tz);
+                $entry['formatted_date'] = $dt->format('M j, Y g:i A');
+            } catch (Exception $e) {}
+        }
+    }
+    unset($entry);
+
     if ($isSuperAdmin || empty($userIdentifier)) {
         return $all;
     }

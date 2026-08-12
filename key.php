@@ -1,4 +1,7 @@
 <?php
+// Set default application timezone to Purdue time (America/Indiana/Indianapolis - Eastern Time)
+date_default_timezone_set(getenv('APP_TIMEZONE') ?: 'America/Indiana/Indianapolis');
+
 // Load local .env file if present
 $envFile = __DIR__ . '/.env';
 if (file_exists($envFile) && is_readable($envFile)) {
