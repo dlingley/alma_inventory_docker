@@ -244,7 +244,8 @@ function parseAnalyticsCsvFile(string $filePath): array
                 <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
-            <form method="POST" enctype="multipart/form-data" id="analytics_form">
+            <iframe name="analytics_frame" id="analytics_frame" style="display:none;"></iframe>
+            <form method="POST" enctype="multipart/form-data" id="analytics_form" target="analytics_frame">
                 <input type="hidden" name="input_mode" id="input_mode" value="<?= htmlspecialchars($inputMode) ?>">
                 <input type="hidden" name="progress_id" id="progress_id" value="">
 
@@ -434,8 +435,23 @@ function parseAnalyticsCsvFile(string $filePath): array
                             if (job !== 'complete') {
                                 $('#analytics_job_text').text(job);
                             } else {
-                                $('#analytics_job_text').text('Finishing up report...');
+                                $('#analytics_bar_fill').css('width', '100%');
+                                $('#analytics_pct_text').text('100%');
+                                $('#analytics_job_text').text('Rendering comparison results...');
                                 clearInterval(timer);
+
+                                function checkIframeAndRender() {
+                                    var iframe = document.getElementById('analytics_frame');
+                                    var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                                    if (iframeDoc && iframeDoc.body && iframeDoc.body.innerHTML.length > 0) {
+                                        document.open();
+                                        document.write(iframeDoc.documentElement.outerHTML);
+                                        document.close();
+                                    } else {
+                                        setTimeout(checkIframeAndRender, 500);
+                                    }
+                                }
+                                setTimeout(checkIframeAndRender, 500);
                             }
                         }
                     }
