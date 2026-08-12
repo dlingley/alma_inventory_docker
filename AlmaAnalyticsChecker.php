@@ -304,9 +304,10 @@ class AlmaAnalyticsChecker
         curl_close($ch);
 
         if ($body === false || $code >= 400) {
+            $rawMsg = $err ?: preg_replace('/\s+/', ' ', trim(strip_tags((string)$body)));
             return [
                 'success' => false,
-                'error'   => "HTTP $code: " . ($err ?: substr(strip_tags((string)$body), 0, 200))
+                'error'   => "HTTP $code: " . substr($rawMsg, 0, 200)
             ];
         }
 
