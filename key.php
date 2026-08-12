@@ -27,5 +27,5 @@ if (file_exists($envFile) && is_readable($envFile)) {
 define("ALMA_SHELFLIST_API_KEY", trim(getenv("ALMA_SHELFLIST_API_KEY") ?: "*****YOUR KEY HERE *********"));
 define("ALMA_ANALYTICS_API_KEY", trim(getenv("ALMA_ANALYTICS_API_KEY") ?: ALMA_SHELFLIST_API_KEY));
 define("ALMA_ANALYTICS_REPORT_PATH", trim(getenv("ALMA_ANALYTICS_REPORT_PATH") ?: "/shared/Purdue University/Reports/CallNumberSortCheck"));
-define("ENABLE_ALMA_ANALYTICS_AUTO_CHECK", filter_var(getenv("ENABLE_ALMA_ANALYTICS_AUTO_CHECK") ?: "true", FILTER_VALIDATE_BOOLEAN));
+define("ENABLE_ALMA_ANALYTICS_AUTO_CHECK", filter_var(getenv("ENABLE_ALMA_ANALYTICS_AUTO_CHECK") ?: "false", FILTER_VALIDATE_BOOLEAN));
 

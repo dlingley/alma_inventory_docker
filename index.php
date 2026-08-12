@@ -1148,14 +1148,16 @@ if (empty($libraries)) {
                     </label>
                     <input type="hidden" name="onlyproblems" id="onlyproblems-val" value="false" />
                 </div>
+                <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
                 <div class="toggle-item">
                     <span class="toggle-label">⚡ Verify Sort with Alma Analytics</span>
                     <label class="toggle">
-                        <input type="checkbox" id="toggle-checkanalytics" <?php echo (defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK) ? 'checked="checked"' : ''; ?> />
+                        <input type="checkbox" id="toggle-checkanalytics" />
                         <span class="slider"></span>
                     </label>
-                    <input type="hidden" name="check_analytics" id="checkanalytics-val" value="<?php echo (defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK) ? 'true' : 'false'; ?>" />
+                    <input type="hidden" name="check_analytics" id="checkanalytics-val" value="false" />
                 </div>
+                <?php endif; ?>
                 <div class="toggle-item">
                     <span class="toggle-label">Clear Cache</span>
                     <label class="toggle">
