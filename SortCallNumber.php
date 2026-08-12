@@ -55,17 +55,34 @@ function NormalizeLC($lc_call_no_orig)
     // Remove any remaining whitespace
     $lc_call_no = preg_replace("/\s*/", "", $lc_call_no);
 
-    if (preg_match("/^([A-Z]{1,3})\s*(\d*)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/", $lc_call_no, $m)) {
+    // Try the standard parse first (class number required: \d+).
+    // Fall back to bare-class parse (\d* optional) only for single-letter LC classes
+    // like K, Q, Z that have no class number (e.g. "K .C845 R 1970 v. 1").
+    // 2- and 3-letter prefixes like DVD, VHS, CD are media labels, not LC classes,
+    // and must NOT be caught by the bare-class fallback.
+    $pattern_std  = "/^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/";
+    $pattern_bare = "/^([A-Z]{1})\s*\.+\s*([A-Z]+)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/";
+
+    if (preg_match($pattern_std, $lc_call_no, $m)) {
         $initial_letters = $m[1];
-        $class_number = $m[2];
-        $decimal_number = $m[3];
+        $class_number    = $m[2];
+        $decimal_number  = $m[3];
         $cutter_1_letter = $m[4];
         $cutter_1_number = $m[5];
         $cutter_2_letter = $m[6];
         $cutter_2_number = $m[7];
-        $the_trimmings = $m[8];
-    } //end if call number match
-    else {
+        $the_trimmings   = $m[8];
+    } elseif (preg_match($pattern_bare, $lc_call_no, $m)) {
+        // Bare single-letter class: K .C845 R 1970 v. 1 → K + no number + cutter C845 + ...
+        $initial_letters = $m[1];
+        $class_number    = '';
+        $decimal_number  = '';
+        $cutter_1_letter = $m[2];
+        $cutter_1_number = $m[3];
+        $cutter_2_letter = $m[4];
+        $cutter_2_number = $m[5];
+        $the_trimmings   = $m[6];
+    } else {
         return ($unparsable);
     } // return extreme answer if not a call number
     if ($cutter_2_letter && !($cutter_2_number)) {
