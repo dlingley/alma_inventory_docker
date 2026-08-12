@@ -164,7 +164,12 @@ class AlmaAnalyticsChecker
                 ];
 
                 $requestUrl = $baseUrl . '?' . http_build_query($params);
-                $response = $this->executeCurl($requestUrl);
+                $response = $this->executeCurl($requestUrl, 60);
+
+                if (!$response['success']) {
+                    usleep(500000);
+                    $response = $this->executeCurl($requestUrl, 60);
+                }
 
                 if (!$response['success']) {
                     $chunkError = "Batch " . ($chunkIndex + 1) . " API error: " . $response['error'];
@@ -411,13 +416,14 @@ class AlmaAnalyticsChecker
         return -1;
     }
 
-    private function executeCurl(string $url): array
+    public function executeCurl(string $url, int $timeout = 60): array
     {
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($ch, CURLOPT_TIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
+        curl_setopt($ch, CURLOPT_TIMEOUT, $timeout);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
         curl_setopt($ch, CURLOPT_USERAGENT, 'AlmaInventoryApp/2.0');
 
