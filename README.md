@@ -135,6 +135,24 @@ kubectl create configmap lib-inventory-allowed-users \
   --dry-run=client -o yaml | kubectl apply -f -
 ```
 
+### Adding Alma Analytics Secrets to Rancher / Kubernetes
+
+To configure the Alma Analytics API key and Report Path in Rancher/Kubernetes deployments:
+
+```bash
+# NonProd:
+kubectl set env deployment/lib-inventory \
+  --namespace=lib-inventory-nonprod \
+  ALMA_ANALYTICS_API_KEY="l8xx33e4ec3ca07b4c50b5afb72b30124382" \
+  ALMA_ANALYTICS_REPORT_PATH="/shared/Purdue University/Reports/CallNumberSortCheck"
+
+# Prod:
+kubectl set env deployment/lib-inventory \
+  --namespace=lib-inventory-prod \
+  ALMA_ANALYTICS_API_KEY="l8xx33e4ec3ca07b4c50b5afb72b30124382" \
+  ALMA_ANALYTICS_REPORT_PATH="/shared/Purdue University/Reports/CallNumberSortCheck"
+```
+
 ---
 
 ## Testing & Validation
