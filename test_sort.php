@@ -17,6 +17,7 @@
  *     7. Year-only call numbers (BP109 2010) sort before cuttered items at same class
  *     8. LC pairwise ordering spot-checks
  *     9. Bare single-letter LC classes (K .C845 R 1970) with no class number
+ *    10. DVD/media-prefix call numbers are NOT parsed as bare LC classes
  */
 require_once(__DIR__ . '/SortCallNumber.php');
 
@@ -290,6 +291,36 @@ foreach ($bare_class_tests as $cn)
     echo "  " . str_pad($cn, 26) . " => " . NormalizeLC($cn) . "\n";
 echo "\n";
 $all_pass = $all_pass && $pass9;
+
+echo "=== Test 10: DVD/media prefix call numbers not caught by bare-class fallback ===\n";
+// Bug guard: the broad \d* fix accidentally parsed 'DVD D21.3 .E54 2006' as a
+// single-letter bare class (D=initial_letters). This caused 17 extra OOO in the
+// IMC DVD file. The narrow fix requires [A-Z]{1} followed immediately by a dot,
+// excluding any multi-letter prefix like DVD, VHS, CD, etc.
+// Verify: all DVD items normalize to the same unparsable sentinel ' ',
+// and the K-class items still sort correctly around them.
+$dvd_calls = [
+    'DVD CC165 .O97 1993 disc 4',
+    'DVD D21.3 .E54 2006 disc 1',
+    'DVD D21.3 .E54 2006 disc 2',
+    'DVD D128 .S42 2004',
+    'DVD CT275.C4623 I75 2007',
+];
+echo "DVD items all get the same unparsable sentinel (stable sort preserves input order):\n";
+$pass10 = true;
+foreach ($dvd_calls as $cn) {
+    $norm = NormalizeLC($cn);
+    $is_sentinel = ($norm === ' ');
+    echo "  " . ($is_sentinel ? '✅' : '❌') . " NormalizeLC(\"$cn\") => \"$norm\"\n";
+    $pass10 = $pass10 && $is_sentinel;
+}
+// Also confirm K .C845 still parses correctly (not regressed)
+$k_norm = NormalizeLC('K .C845 R 1970 v. 1');
+$k_ok   = ($k_norm !== ' ' && str_starts_with($k_norm, 'K'));
+echo "  " . ($k_ok ? '✅' : '❌') . " NormalizeLC(\"K .C845 R 1970 v. 1\") => \"$k_norm\"\n";
+$pass10 = $pass10 && $k_ok;
+echo ($pass10 ? "✅ PASS" : "❌ FAIL") . "\n\n";
+$all_pass = $all_pass && $pass10;
 
 echo "\n========================================\n";
 echo ($all_pass ? "✅ ALL TESTS PASSED!" : "❌ SOME TESTS FAILED") . "\n";
