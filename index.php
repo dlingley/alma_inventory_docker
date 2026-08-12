@@ -90,21 +90,32 @@ if (empty($libraries)) {
         /* ===== Header ===== */
         .header {
             background: linear-gradient(135deg, var(--color-header) 0%, var(--color-header-accent) 100%);
-            padding: 2rem 1.5rem;
-            text-align: center;
+            padding: 1.5rem 2rem 2.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
             position: relative;
             overflow: hidden;
         }
+        .header-title-group {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            text-align: left;
+            position: relative;
+            z-index: 2;
+        }
         .user-bar {
-            position: absolute;
-            top: 1rem;
-            right: 1.5rem;
+            position: relative;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
+            flex-wrap: wrap;
             background: rgba(255, 255, 255, 0.12);
             backdrop-filter: blur(8px);
-            padding: 0.35rem 0.75rem 0.35rem 0.875rem;
+            padding: 0.35rem 0.75rem;
             border-radius: var(--radius-full);
             font-size: 0.8125rem;
             border: 1px solid rgba(255, 255, 255, 0.18);
@@ -840,10 +851,11 @@ if (empty($libraries)) {
         }
 
         /* ===== Responsive ===== */
-        @media (max-width: 600px) {
-            .header { padding-top: 3.5rem; }
-            .user-bar { top: 0.75rem; right: 50%; transform: translateX(50%); width: max-content; }
-            .card { margin: -1rem 0.75rem 1.5rem; padding: 1.25rem; }
+        @media (max-width: 768px) {
+            .header { flex-direction: column; align-items: center; text-align: center; padding-bottom: 2.5rem; }
+            .header-title-group { align-items: center; text-align: center; }
+            .user-bar { justify-content: center; width: 100%; }
+            .card { margin: -1.5rem 0.75rem 1.5rem; padding: 1.25rem; }
             .form-row { grid-template-columns: 1fr; }
             .toggle-grid { grid-template-columns: 1fr; }
             .header h1 { font-size: 1.375rem; }
@@ -854,6 +866,10 @@ if (empty($libraries)) {
 
 <!-- ===== Header ===== -->
 <header class="header">
+    <div class="header-title-group">
+        <h1><span class="icon">📋</span> Alma Inventory Scanner</h1>
+        <p>Upload barcodes, verify shelf order, generate reports</p>
+    </div>
     <?php if (!empty($loggedInUser)): ?>
     <div class="user-bar">
         <span class="user-info">👤 <strong><?php echo htmlspecialchars($loggedInUser); ?></strong></span>
@@ -866,8 +882,6 @@ if (empty($libraries)) {
         <a href="/saml/logout" class="logout-btn">Log Out</a>
     </div>
     <?php endif; ?>
-    <h1><span class="icon">📋</span> Alma Inventory Scanner</h1>
-    <p>Upload barcodes, verify shelf order, generate reports</p>
 </header>
 
 <!-- ===== Run History Modal ===== -->

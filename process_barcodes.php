@@ -50,21 +50,32 @@ body {
 }
 .header {
     background: linear-gradient(135deg, var(--color-header) 0%, var(--color-header-accent) 100%);
-    padding: 1.75rem 1.5rem;
-    text-align: center;
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
     position: relative;
     overflow: hidden;
 }
+.header-title-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+    position: relative;
+    z-index: 2;
+}
 .user-bar {
-    position: absolute;
-    top: 1rem;
-    right: 1.5rem;
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
     background: rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(8px);
-    padding: 0.35rem 0.75rem 0.35rem 0.875rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 9999px;
     font-size: 0.8125rem;
     border: 1px solid rgba(255, 255, 255, 0.18);
@@ -620,15 +631,16 @@ if (isset($_POST['submit'])) {
         recordRun($runData);
 
         echo '<header class="header">';
+        echo '  <div class="header-title-group">';
+        echo '    <h1>📋 Inventory Report</h1>';
+        echo '    <p style="color:rgba(255,255,255,0.7);font-size:0.875rem;margin-top:0.2rem;">' . htmlspecialchars($_POST['library'] ?? '') . ':' . htmlspecialchars($_POST['location'] ?? '') . ' &middot; Range ' . substr($first_call, 0, 4) . '–' . substr($last_call, 0, 4) . ' &middot; ' . date('M j, Y') . '</p>';
+        echo '  </div>';
         if (!empty($loggedInUser)) {
             echo '  <div class="user-bar">';
             echo '    <span class="user-info">👤 <strong>' . htmlspecialchars($loggedInUser) . '</strong></span>';
             echo '    <a href="/saml/logout" class="logout-btn">Log Out</a>';
             echo '  </div>';
         }
-        echo '  <h1>📋 Inventory Report';
-        echo '    <small>' . htmlspecialchars($_POST['library']) . ':' . htmlspecialchars($_POST['location']) . ' &middot; Range ' . substr($first_call, 0, 4) . '–' . substr($last_call, 0, 4) . ' &middot; ' . date('M j, Y') . '</small>';
-        echo '  </h1>';
         echo '</header>';
 
         echo '<div class="container">';
