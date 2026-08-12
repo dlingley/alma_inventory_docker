@@ -1,15 +1,21 @@
 <?php
 /**
- * Dewey Call Number Sort Regression Tests
+ * Dewey & LC Call Number Sort Regression Tests
  *
  * Run: docker compose exec app php test_sort.php
+ *   or: php test_sort.php
  *
  * Tests cover:
- *   1. Volume numbers (t.1, t.2, t.10) sort numerically
- *   2. Dewey class number ordering (709 < 759 < 867 < 868)
- *   3. Case-insensitive cutter work marks (Am15L before Am15p)
- *   4. Consistent cutter letter ordering (P69A before P69c)
- *   5. Comprehensive mixed sort
+ *   Dewey:
+ *     1. Volume numbers (t.1, t.2, t.10) sort numerically
+ *     2. Dewey class number ordering (709 < 759 < 867 < 868)
+ *     3. Case-insensitive cutter work marks (Am15L before Am15p)
+ *     4. Consistent cutter letter ordering (P69A before P69c)
+ *     5. Comprehensive mixed sort
+ *   LC:
+ *     6. Dot-prefixed second cutter (.G359) sorts by letter, not by ASCII dot
+ *     7. Year-only call numbers (BP109 2010) sort before cuttered items at same class
+ *     8. LC pairwise ordering spot-checks
  */
 require_once(__DIR__ . '/SortCallNumber.php');
 
@@ -169,6 +175,87 @@ foreach ($pairs as $pair) {
     $n_later = normalizeDewey($later);
     $passed = strcmp($n_early, $n_later) < 0;
     $status = $passed ? "✅ PASS" : "❌ FAIL";
+    echo "  $status: '$earlier' < '$later'\n";
+    if (!$passed) {
+        echo "         got: $n_early\n";
+        echo "          vs: $n_later\n";
+    }
+    $all_pass = $all_pass && $passed;
+}
+
+// ============================================================
+// LC-specific tests
+// ============================================================
+
+echo "\n=== Test 6: Dot-prefixed second cutter sorts by letter, not ASCII dot ===\n";
+// Bug: 'BL2532.R37 .G359 2024' was normalizing to '.G359' key, which sorts
+// before 'B37' and 'C47' because '.' (ASCII 46) < any letter (A=65).
+// Fix: strip leading dot from second cutter in NormalizeLC().
+$dot_cutter_tests = [
+    'BL2532.R37 B37 1997',
+    'BL2532.R37 C47 1994',
+    'BL2532.R37 .G359 2024',
+    'BL2532.R37 K43 2020',
+];
+$shuffled_dc = $dot_cutter_tests;
+shuffle($shuffled_dc);
+usort($shuffled_dc, 'SortLC');
+echo "Result:\n";
+foreach ($shuffled_dc as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
+$pass6 = ($shuffled_dc === $dot_cutter_tests);
+echo ($pass6 ? "✅ PASS" : "❌ FAIL") . "\n";
+echo "Normalized keys:\n";
+foreach ($dot_cutter_tests as $cn)
+    echo "  " . str_pad($cn, 28) . " => " . NormalizeLC($cn) . "\n";
+echo "\n";
+$all_pass = $all_pass && $pass6;
+
+echo "=== Test 7: Year-only LC call numbers sort before cuttered items at same class ===\n";
+// Bug: 'BP109 2010' (no cutter, year only) had whitespace stripped producing
+// 'BP1092010' — a fake class number of 1,092,010 that sorted after 'BP395'.
+// Fix: tilde sentinel before stripping whitespace keeps year in the_trimmings,
+// which sorts before any cutter letter (space ASCII 32 < A ASCII 65).
+$year_only_tests = [
+    'BP75 .L56 1983',
+    'BP109 1965',    // year-only, earlier edition
+    'BP109 2010',    // year-only, later edition
+    'BP109 .K45 1991', // same class, but has a cutter — sorts after year-only
+    'BP395.G73 M67 1982',
+];
+$shuffled_yo = $year_only_tests;
+shuffle($shuffled_yo);
+usort($shuffled_yo, 'SortLC');
+echo "Result:\n";
+foreach ($shuffled_yo as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
+$pass7 = ($shuffled_yo === $year_only_tests);
+echo ($pass7 ? "✅ PASS" : "❌ FAIL") . "\n";
+echo "Normalized keys:\n";
+foreach ($year_only_tests as $cn)
+    echo "  " . str_pad($cn, 25) . " => " . NormalizeLC($cn) . "\n";
+echo "\n";
+$all_pass = $all_pass && $pass7;
+
+echo "=== Test 8: LC pairwise ordering spot-checks ===\n";
+$lc_pair_tests = [
+    // Basic class number ordering
+    ['BL2532.R37 B37 1997',   'BL2532.R37 K43 2020'],
+    // Dot-cutter vs plain cutter at same class
+    ['BL2532.R37 C47 1994',   'BL2532.R37 .G359 2024'],
+    ['BL2532.R37 .G359 2024', 'BL2532.R37 K43 2020'],
+    // Year-only before cuttered at same class number
+    ['BP109 2010',             'BP109 .K45 1991'],
+    ['BP109 1965',             'BP109 2010'],
+    // Cross-class ordering
+    ['BP109 2010',             'BP395.G73 M67 1982'],
+];
+foreach ($lc_pair_tests as $pair) {
+    [$earlier, $later] = $pair;
+    $n_early = NormalizeLC($earlier);
+    $n_later = NormalizeLC($later);
+    $passed  = strcmp($n_early, $n_later) < 0;
+    $status  = $passed ? "✅ PASS" : "❌ FAIL";
     echo "  $status: '$earlier' < '$later'\n";
     if (!$passed) {
         echo "         got: $n_early\n";
