@@ -51,11 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    $customApiKey = trim($_POST['custom_api_key'] ?? '');
+
     if (empty($error)) {
         if (empty($items)) {
             $error = "No valid barcodes or items were provided.";
         } else {
-            $checker = new AlmaAnalyticsChecker();
+            $checker = new AlmaAnalyticsChecker($customApiKey ?: null);
             $report = $checker->compare($items, $callNumberType);
         }
     }
@@ -227,13 +229,17 @@ function parseAnalyticsCsvFile(string $filePath): array
                     </div>
                 </div>
 
-                <div style="display:flex; gap:1rem; align-items:center;">
+                <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
                     <div class="form-group" style="margin-bottom:0; width: 200px;">
                         <label for="call_number_type">Classification System:</label>
                         <select name="call_number_type" id="call_number_type">
                             <option value="LC" <?= $callNumberType === 'LC' ? 'selected' : '' ?>>LC (Library of Congress)</option>
                             <option value="Dewey" <?= $callNumberType === 'Dewey' ? 'selected' : '' ?>>Dewey Decimal</option>
                         </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0; flex:1; min-width: 250px;">
+                        <label for="custom_api_key">Analytics API Key (Optional Override):</label>
+                        <input type="text" name="custom_api_key" id="custom_api_key" class="form-control" placeholder="Default from .env: <?= htmlspecialchars(substr(ALMA_ANALYTICS_API_KEY, 0, 6) . '...') ?>" value="<?= htmlspecialchars($_POST['custom_api_key'] ?? '') ?>">
                     </div>
                     <div style="margin-top:auto;">
                         <button type="submit" class="btn btn-primary">⚡ Query Alma & Compare Sort</button>
