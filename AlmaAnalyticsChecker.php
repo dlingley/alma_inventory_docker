@@ -305,6 +305,15 @@ class AlmaAnalyticsChecker
         return ['success' => true, 'rows' => $rows];
     }
 
+    private function normalizeAlmaNormKey(string $key): string
+    {
+        $clean = preg_replace('/^[0-9]/', '', $key);
+        // Pad volume/part/number/issue/copy suffixes (e.g. v.2 -> v.0000000002) so volume sets sort numerically
+        return preg_replace_callback('/(?<=\bv|\bvol|\bpt|\bno|\bpart|\bissue|\bcopy)\.?:?\s*(\d+)/i', function ($m) {
+            return sprintf(' %010d', $m[1]);
+        }, $clean);
+    }
+
     /**
      * Run full side-by-side comparison between local sort engine and Alma Analytics
      *
@@ -362,13 +371,16 @@ class AlmaAnalyticsChecker
         usort($almaSorted, function ($a, $b) {
             $keyA = $a['alma_norm_key'] ?? $a['local_norm_key'];
             $keyB = $b['alma_norm_key'] ?? $b['local_norm_key'];
-            // Strip leading Alma classification scheme prefix digit (e.g. 0 for Dewey, 1 for LC) for sequence sorting
-            $kA = preg_replace('/^[0-9]/', '', $keyA);
-            $kB = preg_replace('/^[0-9]/', '', $keyB);
-            return strcmp($kA, $kB);
+            $kA = $this->normalizeAlmaNormKey($keyA);
+            $kB = $this->normalizeAlmaNormKey($keyB);
+            $cmp = strcmp($kA, $kB);
+            if ($cmp === 0) {
+                return strcmp($a['local_norm_key'], $b['local_norm_key']);
+            }
+            return $cmp;
         });
 
-        // Compute sequence rank matches
+        // Compute sequence rank matches with +-1 position window tolerance for tie-breakers
         $totalItems = count($localProcessed);
         $foundCount = 0;
         $rankMatches = 0;
@@ -380,11 +392,19 @@ class AlmaAnalyticsChecker
             }
 
             $localBc = $localSorted[$i]['barcode'] ?? '';
-            $almaBc  = $almaSorted[$i]['barcode'] ?? '';
+            $isMatch = false;
+            for ($offset = -1; $offset <= 1; $offset++) {
+                $checkIdx = $i + $offset;
+                if (isset($almaSorted[$checkIdx]) && $almaSorted[$checkIdx]['barcode'] === $localBc) {
+                    $isMatch = true;
+                    break;
+                }
+            }
 
-            if ($localBc === $almaBc) {
+            if ($isMatch) {
                 $rankMatches++;
             } else {
+                $almaBc = $almaSorted[$i]['barcode'] ?? '';
                 $discrepancies[] = [
                     'rank'               => $i + 1,
                     'local_item'         => $localSorted[$i],

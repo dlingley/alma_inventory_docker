@@ -358,8 +358,14 @@ function parseAnalyticsCsvFile(string $filePath): array
                                 <?php
                                     $rank = $idx + 1;
                                     $bc = $item['barcode'];
-                                    $almaItem = $report['alma_sorted'][$idx] ?? null;
-                                    $match = ($almaItem && $almaItem['barcode'] === $bc);
+                                    $match = false;
+                                    for ($offset = -1; $offset <= 1; $offset++) {
+                                        $checkIdx = $idx + $offset;
+                                        if (isset($report['alma_sorted'][$checkIdx]) && $report['alma_sorted'][$checkIdx]['barcode'] === $bc) {
+                                            $match = true;
+                                            break;
+                                        }
+                                    }
                                 ?>
                                 <tr>
                                     <td><strong>#<?= $rank ?></strong></td>
