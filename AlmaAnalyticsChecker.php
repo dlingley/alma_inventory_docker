@@ -12,15 +12,60 @@ require_once __DIR__ . '/SortCallNumber.php';
 
 class AlmaAnalyticsChecker
 {
-    private string $apiKey;
-    private string $reportPath;
-    private int $batchSize;
+    private string $cacheDir;
+    private int $cacheTtlSeconds = 2592000; // 30 days (30 * 86400)
 
-    public function __construct(?string $apiKey = null, ?string $reportPath = null, int $batchSize = 25)
+    public function __construct(?string $apiKey = null, ?string $reportPath = null, int $batchSize = 25, ?string $cacheDir = null)
     {
         $this->apiKey     = $apiKey ?: (defined('ALMA_ANALYTICS_API_KEY') ? ALMA_ANALYTICS_API_KEY : ALMA_SHELFLIST_API_KEY);
         $this->reportPath = $reportPath ?: (defined('ALMA_ANALYTICS_REPORT_PATH') ? ALMA_ANALYTICS_REPORT_PATH : '/shared/Purdue University/Reports/CallNumberSortCheck');
         $this->batchSize  = max(1, min($batchSize, 50));
+        $this->cacheDir   = $cacheDir ?: (__DIR__ . '/cache/analytics');
+
+        if (!is_dir($this->cacheDir)) {
+            @mkdir($this->cacheDir, 0775, true);
+        }
+    }
+
+    /**
+     * Read cached Analytics data for a single barcode if present and younger than 30 days
+     */
+    private function getCachedBarcodeData(string $barcode): ?array
+    {
+        $safeBc = preg_replace('/[^0-9A-Za-z]/', '', $barcode);
+        if ($safeBc === '') {
+            return null;
+        }
+        $cacheFile = $this->cacheDir . '/' . $safeBc . '.json';
+        if (file_exists($cacheFile)) {
+            $mtime = filemtime($cacheFile);
+            if ($mtime !== false && (time() - $mtime) < $this->cacheTtlSeconds) {
+                $content = @file_get_contents($cacheFile);
+                if ($content) {
+                    $json = @json_decode($content, true);
+                    if (is_array($json) && !empty($json['barcode'])) {
+                        return $json;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Save Analytics data for a single barcode to disk cache
+     */
+    private function saveCachedBarcodeData(string $barcode, array $data): void
+    {
+        $safeBc = preg_replace('/[^0-9A-Za-z]/', '', $barcode);
+        if ($safeBc === '') {
+            return;
+        }
+        if (!is_dir($this->cacheDir)) {
+            @mkdir($this->cacheDir, 0775, true);
+        }
+        $cacheFile = $this->cacheDir . '/' . $safeBc . '.json';
+        @file_put_contents($cacheFile, json_encode($data, JSON_PRETTY_PRINT));
     }
 
     /**
@@ -51,23 +96,49 @@ class AlmaAnalyticsChecker
     }
 
     /**
-     * Query Alma Analytics API for a batch of barcodes
+     * Query Alma Analytics API for a batch of barcodes (utilizing 30-day cache)
      *
      * @param array $barcodes List of barcode strings
      * @return array Map of barcode => ['barcode' => ..., 'call_number' => ..., 'norm_call_number' => ...]
      */
-    public function fetchAnalyticsData(array $barcodes, ?callable $progressCallback = null): array
+    public function fetchAnalyticsData(array $barcodes, ?callable $progressCallback = null, bool $ignoreCache = false): array
     {
         $cleanBarcodes = array_values(array_unique(array_filter(array_map('trim', $barcodes))));
         if (empty($cleanBarcodes)) {
             return ['success' => true, 'data' => [], 'errors' => []];
         }
 
-        $chunks = array_chunk($cleanBarcodes, $this->batchSize);
+        $results = [];
+        $barcodesToFetch = [];
+
+        if (!$ignoreCache) {
+            foreach ($cleanBarcodes as $bc) {
+                $cached = $this->getCachedBarcodeData($bc);
+                if ($cached !== null) {
+                    $results[$bc] = $cached;
+                } else {
+                    $barcodesToFetch[] = $bc;
+                }
+            }
+        } else {
+            $barcodesToFetch = $cleanBarcodes;
+        }
+
+        if (empty($barcodesToFetch)) {
+            if (is_callable($progressCallback)) {
+                call_user_func($progressCallback, 1, 1, count($cleanBarcodes), count($cleanBarcodes));
+            }
+            return [
+                'success' => true,
+                'data'    => $results,
+                'errors'  => []
+            ];
+        }
+
+        $chunks = array_chunk($barcodesToFetch, $this->batchSize);
         $totalChunks = count($chunks);
         $totalBarcodes = count($cleanBarcodes);
-        $processedBarcodes = 0;
-        $results = [];
+        $processedBarcodes = count($cleanBarcodes) - count($barcodesToFetch);
         $errors = [];
 
         $formulasToTry = [
@@ -119,6 +190,7 @@ class AlmaAnalyticsChecker
                 foreach ($chunkParsed as $row) {
                     if (!empty($row['barcode'])) {
                         $results[$row['barcode']] = $row;
+                        $this->saveCachedBarcodeData($row['barcode'], $row);
                     }
                 }
             }

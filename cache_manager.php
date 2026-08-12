@@ -65,38 +65,42 @@ function getDirStats($dirPath) {
 }
 
 function getAllCacheStats() {
-    $barcodesStats = getDirStats(CACHE_BASE_DIR . '/barcodes');
-    $outputStats   = getDirStats(CACHE_BASE_DIR . '/output');
-    $uploadsStats  = getDirStats(CACHE_BASE_DIR . '/uploads');
-    $stagingStats  = getDirStats(CACHE_BASE_DIR . '/upload');
+    $barcodesStats  = getDirStats(CACHE_BASE_DIR . '/barcodes');
+    $analyticsStats = getDirStats(CACHE_BASE_DIR . '/analytics');
+    $outputStats    = getDirStats(CACHE_BASE_DIR . '/output');
+    $uploadsStats   = getDirStats(CACHE_BASE_DIR . '/uploads');
+    $stagingStats   = getDirStats(CACHE_BASE_DIR . '/upload');
 
-    $totalSize = $barcodesStats['size'] + $outputStats['size'] + $uploadsStats['size'] + $stagingStats['size'];
-    $totalCount = $barcodesStats['count'] + $outputStats['count'] + $uploadsStats['count'] + $stagingStats['count'];
+    $totalSize = $barcodesStats['size'] + $analyticsStats['size'] + $outputStats['size'] + $uploadsStats['size'] + $stagingStats['size'];
+    $totalCount = $barcodesStats['count'] + $analyticsStats['count'] + $outputStats['count'] + $uploadsStats['count'] + $stagingStats['count'];
 
     return [
         'total_size' => $totalSize,
         'formatted_total_size' => formatBytes($totalSize),
         'total_count' => $totalCount,
         'categories' => [
-            'barcodes' => $barcodesStats,
-            'output' => $outputStats,
-            'uploads' => $uploadsStats,
-            'staging' => $stagingStats
+            'barcodes'  => $barcodesStats,
+            'analytics' => $analyticsStats,
+            'output'    => $outputStats,
+            'uploads'   => $uploadsStats,
+            'staging'   => $stagingStats
         ]
     ];
 }
 
 function pruneExpiredBarcodes($days = 30) {
-    $dir = CACHE_BASE_DIR . '/barcodes';
-    if (!is_dir($dir)) return 0;
-
     $threshold = strtotime("-{$days} days");
     $deletedCount = 0;
 
-    foreach (glob($dir . '/*.xml') as $file) {
-        if (is_file($file) && filemtime($file) < $threshold) {
-            if (@unlink($file)) {
-                $deletedCount++;
+    $dirs = [CACHE_BASE_DIR . '/barcodes', CACHE_BASE_DIR . '/analytics'];
+    foreach ($dirs as $dir) {
+        if (is_dir($dir)) {
+            foreach (glob($dir . '/*') as $file) {
+                if (is_file($file) && filemtime($file) < $threshold) {
+                    if (@unlink($file)) {
+                        $deletedCount++;
+                    }
+                }
             }
         }
     }
@@ -105,14 +109,16 @@ function pruneExpiredBarcodes($days = 30) {
 }
 
 function clearAllBarcodeCache() {
-    $dir = CACHE_BASE_DIR . '/barcodes';
-    if (!is_dir($dir)) return 0;
-
     $deletedCount = 0;
-    foreach (glob($dir . '/*') as $file) {
-        if (is_file($file)) {
-            if (@unlink($file)) {
-                $deletedCount++;
+    $dirs = [CACHE_BASE_DIR . '/barcodes', CACHE_BASE_DIR . '/analytics'];
+    foreach ($dirs as $dir) {
+        if (is_dir($dir)) {
+            foreach (glob($dir . '/*') as $file) {
+                if (is_file($file)) {
+                    if (@unlink($file)) {
+                        $deletedCount++;
+                    }
+                }
             }
         }
     }

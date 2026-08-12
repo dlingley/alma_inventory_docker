@@ -251,7 +251,7 @@ if (isset($_POST['submit'])) {
   //View Post Data Submitted
   //pre($_POST);
     // Ensure all required cache subdirectories exist
-    foreach (['cache', 'cache/upload', 'cache/uploads', 'cache/barcodes', 'cache/output'] as $dir) {
+    foreach (['cache', 'cache/upload', 'cache/uploads', 'cache/barcodes', 'cache/analytics', 'cache/output'] as $dir) {
         if (!is_dir(__DIR__ . '/' . $dir)) {
             @mkdir(__DIR__ . '/' . $dir, 0775, true);
         }
