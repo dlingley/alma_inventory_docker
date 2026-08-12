@@ -52,6 +52,11 @@ function NormalizeLC($lc_call_no_orig)
     // Use a tilde sentinel instead of a dot so the year is NOT parsed as a class decimal.
     // The tilde causes the regex to leave everything from it onward in $the_trimmings.
     $lc_call_no = preg_replace('/(\d)\s+(\d{4}\b)/', '$1~$2', $lc_call_no);
+    // Protect ordinal edition markers (1st, 2nd, 3rd, 10th, etc.) that appear between
+    // the class number and the cutter (e.g. "UA31 10th .L4197" -> "UA31~10TH .L4197").
+    // Without this, whitespace stripping merges them into the class number
+    // ("UA3110TH") making the class number read as 3110 instead of 31.
+    $lc_call_no = preg_replace('/(\d)\s+(\d+(?:st|nd|rd|th)\b)/i', '$1~$2', $lc_call_no);
     // Remove any remaining whitespace
     $lc_call_no = preg_replace("/\s*/", "", $lc_call_no);
 
@@ -92,6 +97,16 @@ function NormalizeLC($lc_call_no_orig)
     // Strip the tilde sentinel from the year-only case (e.g. "BP109~2010" ends up in the_trimmings)
     // This ensures the year sorts as a plain suffix (after the class, before any cutter)
     $the_trimmings = ltrim($the_trimmings, '~');
+    // Handle ordinal edition markers that absorbed the cutter into trimmings.
+    // When the class number is followed by an ordinal (e.g. "UA31 10th .L4197 2003"),
+    // the sentinel leaves "10TH.L4197~2003" in trimmings. Extract the cutter from it
+    // so it still participates in sorting, and keep the ordinal as a trimming prefix.
+    if (!$cutter_1_letter && preg_match('/^(\d+(?:ST|ND|RD|TH))\.([A-Z])(\d*)(.*)/i', $the_trimmings, $om)) {
+        $cutter_1_letter = strtoupper($om[2]);
+        $cutter_1_number = $om[3];
+        $year_suffix     = ltrim($om[4], '~');
+        $the_trimmings   = $om[1] . ($year_suffix ? ' ' . $year_suffix : '');
+    }
     // Handle second cutter written with a leading dot (e.g. ".G359 2024")
     // The dot is purely a visual separator in LC call numbers and must be stripped for correct sorting
     if (!$cutter_2_letter && preg_match('/^\.([A-Z]+)(\d+)\s*(.*)$/i', ltrim($the_trimmings), $dm)) {

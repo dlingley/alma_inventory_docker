@@ -18,6 +18,7 @@
  *     8. LC pairwise ordering spot-checks
  *     9. Bare single-letter LC classes (K .C845 R 1970) with no class number
  *    10. DVD/media-prefix call numbers are NOT parsed as bare LC classes
+ *    11. Ordinal edition markers (1st, 2nd, 10th) between class number and cutter
  */
 require_once(__DIR__ . '/SortCallNumber.php');
 
@@ -321,6 +322,44 @@ echo "  " . ($k_ok ? '✅' : '❌') . " NormalizeLC(\"K .C845 R 1970 v. 1\") => 
 $pass10 = $pass10 && $k_ok;
 echo ($pass10 ? "✅ PASS" : "❌ FAIL") . "\n\n";
 $all_pass = $all_pass && $pass10;
+
+echo "=== Test 11: Ordinal edition markers between class number and cutter ===\n";
+// Bug: 'UA31 10th .L4197 2003' → after whitespace strip → 'UA3110TH.L4197...'.
+// The digits '10' from '10th' merged into the class number, making it read as
+// class 3110 instead of 31. So UA31-10th sorted after UA856 (3110 > 856). Wrong!
+// Fix: sentinel '~' before the ordinal (same pattern as year protection), then
+// extract the cutter from trimmings in post-processing.
+$ordinal_tests = [
+    'UA23 .B498 1993',       // UA23 (class 23 < 31 < 856)
+    'UA31 10th .L4',         // UA31, 10th edition, cutter L4
+    'UA31 10th .L4197 2003', // UA31, 10th edition, cutter L4197, year 2003
+    'UA856 .L46 1983',       // UA856 — must come AFTER all UA31 items
+    'UB416 .D35 2010',       // UB section — after all UA
+];
+$shuffled_ord = $ordinal_tests;
+shuffle($shuffled_ord);
+usort($shuffled_ord, 'SortLC');
+echo "Result:\n";
+foreach ($shuffled_ord as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
+$pass11 = ($shuffled_ord === $ordinal_tests);
+echo ($pass11 ? "✅ PASS" : "❌ FAIL") . "\n";
+echo "Normalized keys:\n";
+foreach ($ordinal_tests as $cn)
+    echo "  " . str_pad($cn, 30) . " => " . NormalizeLC($cn) . "\n";
+echo "\n";
+// Also verify specific pairwise ordering
+$pairwise11 = [
+    ['UA31 10th .L4',         'UA856 .L46 1983'],  // 31 < 856
+    ['UA31 10th .L4',         'UA31 10th .L4197 2003'], // cutter L4 < L4197
+    ['UA23 .B498 1993',       'UA31 10th .L4'],    // 23 < 31
+];
+foreach ($pairwise11 as [$earlier, $later]) {
+    $ok = SortLC($earlier, $later) < 0;
+    echo "  " . ($ok ? '✅' : '❌') . " '$earlier' < '$later'\n";
+    $pass11 = $pass11 && $ok;
+}
+$all_pass = $all_pass && $pass11;
 
 echo "\n========================================\n";
 echo ($all_pass ? "✅ ALL TESTS PASSED!" : "❌ SOME TESTS FAILED") . "\n";
