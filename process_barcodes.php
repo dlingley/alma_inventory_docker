@@ -339,11 +339,19 @@ if (isset($_POST['submit'])) {
             $percentage = round($processed * 100 / $total_barcodes);
 
             $progress_id = isset($_POST['progress_id']) ? preg_replace('/[^a-zA-Z0-9_.]/', '', $_POST['progress_id']) : '';
+            $willDoAnalytics = (($_POST['check_analytics'] ?? 'false') === 'true') && defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK;
+
             if ($progress_id) {
-                $progress_data = array('percentage' => $percentage, 'job' => 'Retrieving Barcodes From API');
-                if ($percentage >= 100) {
-                    $progress_data['job'] = 'complete';
-                    $progress_data['percentage'] = 100;
+                if ($willDoAnalytics) {
+                    $scaledPct = round($percentage * 0.80);
+                    $jobMsg = ($percentage >= 100) ? 'Preparing Alma Analytics comparison...' : 'Retrieving Barcodes From API';
+                    $progress_data = array('percentage' => $scaledPct, 'job' => $jobMsg);
+                } else {
+                    $progress_data = array('percentage' => $percentage, 'job' => 'Retrieving Barcodes From API');
+                    if ($percentage >= 100) {
+                        $progress_data['job'] = 'complete';
+                        $progress_data['percentage'] = 100;
+                    }
                 }
                 file_put_contents('/tmp/progress_' . $progress_id . '.json', json_encode($progress_data));
                 error_log("process_barcodes loop - Progress ID: " . $progress_id . " Percentage: " . $percentage . " Processed: " . $processed);
@@ -604,9 +612,25 @@ if (isset($_POST['submit'])) {
             }
             if (!empty($itemsToCheck)) {
                 $cnType = (strtolower($_POST['cnType'] ?? 'lc') === 'dewey') ? 'Dewey' : 'LC';
+                $progress_id = isset($_POST['progress_id']) ? preg_replace('/[^a-zA-Z0-9_.]/', '', $_POST['progress_id']) : '';
                 $checker = new AlmaAnalyticsChecker();
-                $analyticsReport = $checker->compare($itemsToCheck, $cnType);
+
+                $analyticsReport = $checker->compare($itemsToCheck, $cnType, function($curBatch, $totalBatches, $curItems, $totalItems) use ($progress_id) {
+                    if ($progress_id) {
+                        $pct = min(99, round(80 + ($curItems / $totalItems) * 19));
+                        $pdata = [
+                            'percentage' => $pct,
+                            'job' => "Verifying batch $curBatch of $totalBatches ($curItems/$totalItems items) with Alma Analytics..."
+                        ];
+                        file_put_contents('/tmp/progress_' . $progress_id . '.json', json_encode($pdata));
+                    }
+                });
             }
+        }
+
+        $progress_id = isset($_POST['progress_id']) ? preg_replace('/[^a-zA-Z0-9_.]/', '', $_POST['progress_id']) : '';
+        if ($progress_id) {
+            file_put_contents('/tmp/progress_' . $progress_id . '.json', json_encode(['percentage' => 100, 'job' => 'complete']));
         }
 
         $runData = [

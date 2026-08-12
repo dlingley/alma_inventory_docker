@@ -57,13 +57,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $customApiKey = trim($_POST['custom_api_key'] ?? '');
+    $progressId   = trim($_POST['progress_id'] ?? '');
 
     if (empty($error)) {
         if (empty($items)) {
             $error = "No valid barcodes or items were provided.";
         } else {
             $checker = new AlmaAnalyticsChecker($customApiKey ?: null);
-            $report = $checker->compare($items, $callNumberType);
+            $report = $checker->compare($items, $callNumberType, function($curBatch, $totalBatches, $curItems, $totalItems) use ($progressId) {
+                if ($progressId) {
+                    $pct = round(($curItems / $totalItems) * 100);
+                    $pdata = [
+                        'percentage' => $pct,
+                        'job' => "Querying Alma Analytics: Batch $curBatch of $totalBatches ($curItems/$totalItems barcodes)..."
+                    ];
+                    file_put_contents('/tmp/progress_' . $progressId . '.json', json_encode($pdata));
+                }
+            });
+
+            if ($progressId) {
+                file_put_contents('/tmp/progress_' . $progressId . '.json', json_encode(['percentage' => 100, 'job' => 'complete']));
+            }
         }
     }
 }
@@ -209,8 +223,9 @@ function parseAnalyticsCsvFile(string $filePath): array
                 <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
             <?php endif; ?>
 
-            <form method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" id="analytics_form">
                 <input type="hidden" name="input_mode" id="input_mode" value="<?= htmlspecialchars($inputMode) ?>">
+                <input type="hidden" name="progress_id" id="progress_id" value="">
 
                 <div class="tabs">
                     <button type="button" class="tab-btn <?= $inputMode === 'paste' ? 'active' : '' ?>" onclick="switchTab('paste')">Paste Barcodes</button>
@@ -346,6 +361,18 @@ function parseAnalyticsCsvFile(string $filePath): array
         <?php endif; ?>
     </main>
 
+    <!-- Progress Overlay -->
+    <div id="analytics_loading" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,0.7); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+        <div style="background:#fff; border-radius:12px; padding:2rem; width:90%; max-width:440px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+            <h3 style="font-size:1.1rem; font-weight:700; margin-bottom:0.35rem;">⚡ Querying Alma Analytics</h3>
+            <p id="analytics_job_text" style="font-size:0.85rem; color:#64748b; margin-bottom:1.25rem;">Preparing query...</p>
+            <div style="width:100%; height:10px; background:#f1f5f9; border-radius:999px; overflow:hidden; margin-bottom:0.75rem;">
+                <div id="analytics_bar_fill" style="height:100%; width:0%; background:linear-gradient(90deg, #3b82f6, #60a5fa); border-radius:999px; transition:width 0.4s ease;"></div>
+            </div>
+            <div id="analytics_pct_text" style="font-size:1.5rem; font-weight:700; color:#3b82f6;">0%</div>
+        </div>
+    </div>
+
     <script>
         function switchTab(mode) {
             document.getElementById('input_mode').value = mode;
@@ -353,6 +380,37 @@ function parseAnalyticsCsvFile(string $filePath): array
             $('.tab-content').removeClass('active');
             $(`button[onclick="switchTab('${mode}')"]`).addClass('active');
             $(`#tab-${mode}`).addClass('active');
+        }
+
+        $('#analytics_form').on('submit', function() {
+            var pid = 'an_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            $('#progress_id').val(pid);
+            $('#analytics_loading').css('display', 'flex');
+            startAnalyticsProgress(pid);
+        });
+
+        function startAnalyticsProgress(pid) {
+            var timer = setInterval(function() {
+                $.ajax({
+                    url: 'getProgress.php?id=' + pid,
+                    dataType: 'json',
+                    cache: false,
+                    success: function(data) {
+                        if (data) {
+                            var pct = data.percentage || 0;
+                            var job = data.job || 'Querying Alma Analytics...';
+                            $('#analytics_bar_fill').css('width', pct + '%');
+                            $('#analytics_pct_text').text(pct + '%');
+                            if (job !== 'complete') {
+                                $('#analytics_job_text').text(job);
+                            } else {
+                                $('#analytics_job_text').text('Finishing up report...');
+                                clearInterval(timer);
+                            }
+                        }
+                    }
+                });
+            }, 1000);
         }
     </script>
 </body>

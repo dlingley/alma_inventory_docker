@@ -144,14 +144,21 @@ To configure the Alma Analytics API key and Report Path in Rancher/Kubernetes de
 kubectl set env deployment/lib-inventory \
   --namespace=lib-inventory-nonprod \
   ALMA_ANALYTICS_API_KEY="l8xx33e4ec3ca07b4c50b5afb72b30124382" \
-  ALMA_ANALYTICS_REPORT_PATH="/shared/Purdue University/Reports/CallNumberSortCheck"
+  ALMA_ANALYTICS_REPORT_PATH="/shared/Purdue University/Reports/CallNumberSortCheck" \
+  ENABLE_ALMA_ANALYTICS_AUTO_CHECK="true"
 
 # Prod:
 kubectl set env deployment/lib-inventory \
   --namespace=lib-inventory-prod \
   ALMA_ANALYTICS_API_KEY="l8xx33e4ec3ca07b4c50b5afb72b30124382" \
-  ALMA_ANALYTICS_REPORT_PATH="/shared/Purdue University/Reports/CallNumberSortCheck"
+  ALMA_ANALYTICS_REPORT_PATH="/shared/Purdue University/Reports/CallNumberSortCheck" \
+  ENABLE_ALMA_ANALYTICS_AUTO_CHECK="true"
 ```
+
+### Live Progress Tracking for Analytics Jobs
+
+- **Inventory Run Progress**: When `⚡ Verify Sort with Alma Analytics` is enabled, barcode retrieval spans 0%–80% progress, and the Alma Analytics comparison phase updates live from 80%–100% with batch status messages (`Verifying batch X of Y (barcodes N/M) with Alma Analytics...`).
+- **Analytics Checker Web UI**: `analytics_checker.php` displays a live status modal and progress bar during query execution.
 
 ---
 

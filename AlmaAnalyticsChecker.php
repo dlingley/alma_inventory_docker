@@ -56,7 +56,7 @@ class AlmaAnalyticsChecker
      * @param array $barcodes List of barcode strings
      * @return array Map of barcode => ['barcode' => ..., 'call_number' => ..., 'norm_call_number' => ...]
      */
-    public function fetchAnalyticsData(array $barcodes): array
+    public function fetchAnalyticsData(array $barcodes, ?callable $progressCallback = null): array
     {
         $cleanBarcodes = array_values(array_unique(array_filter(array_map('trim', $barcodes))));
         if (empty($cleanBarcodes)) {
@@ -64,6 +64,9 @@ class AlmaAnalyticsChecker
         }
 
         $chunks = array_chunk($cleanBarcodes, $this->batchSize);
+        $totalChunks = count($chunks);
+        $totalBarcodes = count($cleanBarcodes);
+        $processedBarcodes = 0;
         $results = [];
         $errors = [];
 
@@ -118,6 +121,11 @@ class AlmaAnalyticsChecker
                         $results[$row['barcode']] = $row;
                     }
                 }
+            }
+
+            $processedBarcodes += count($chunk);
+            if (is_callable($progressCallback)) {
+                call_user_func($progressCallback, $chunkIndex + 1, $totalChunks, $processedBarcodes, $totalBarcodes);
             }
         }
 
@@ -224,10 +232,10 @@ class AlmaAnalyticsChecker
      * @param string $callNumberType 'LC' or 'Dewey'
      * @return array Comparison report details and stats
      */
-    public function compare(array $items, string $callNumberType = 'LC'): array
+    public function compare(array $items, string $callNumberType = 'LC', ?callable $progressCallback = null): array
     {
         $barcodes = array_column($items, 'barcode');
-        $analyticsResult = $this->fetchAnalyticsData($barcodes);
+        $analyticsResult = $this->fetchAnalyticsData($barcodes, $progressCallback);
 
         $analyticsMap = $analyticsResult['data'];
         $apiErrors    = $analyticsResult['errors'];
