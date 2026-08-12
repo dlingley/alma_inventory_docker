@@ -339,7 +339,7 @@ if (isset($_POST['submit'])) {
             $percentage = round($processed * 100 / $total_barcodes);
 
             $progress_id = isset($_POST['progress_id']) ? preg_replace('/[^a-zA-Z0-9_.]/', '', $_POST['progress_id']) : '';
-            $willDoAnalytics = (($_POST['check_analytics'] ?? 'false') === 'true') && defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK;
+            $willDoAnalytics = (($_POST['check_analytics'] ?? 'false') === 'true');
 
             if ($progress_id) {
                 if ($willDoAnalytics) {
@@ -596,7 +596,7 @@ if (isset($_POST['submit'])) {
         @copy("cache/upload/" . $storagename, __DIR__ . '/' . $archiveUploadPath);
 
         $analyticsReport = null;
-        $doAnalyticsCheck = (($_POST['check_analytics'] ?? 'false') === 'true') && defined('ENABLE_ALMA_ANALYTICS_AUTO_CHECK') && ENABLE_ALMA_ANALYTICS_AUTO_CHECK;
+        $doAnalyticsCheck = (($_POST['check_analytics'] ?? 'false') === 'true');
 
         if ($doAnalyticsCheck && !empty($shelflist)) {
             require_once __DIR__ . '/AlmaAnalyticsChecker.php';
