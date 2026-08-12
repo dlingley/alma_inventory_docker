@@ -55,7 +55,7 @@ function NormalizeLC($lc_call_no_orig)
     // Remove any remaining whitespace
     $lc_call_no = preg_replace("/\s*/", "", $lc_call_no);
 
-    if (preg_match("/^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/", $lc_call_no, $m)) {
+    if (preg_match("/^([A-Z]{1,3})\s*(\d*)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/", $lc_call_no, $m)) {
         $initial_letters = $m[1];
         $class_number = $m[2];
         $decimal_number = $m[3];

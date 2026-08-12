@@ -16,6 +16,7 @@
  *     6. Dot-prefixed second cutter (.G359) sorts by letter, not by ASCII dot
  *     7. Year-only call numbers (BP109 2010) sort before cuttered items at same class
  *     8. LC pairwise ordering spot-checks
+ *     9. Bare single-letter LC classes (K .C845 R 1970) with no class number
  */
 require_once(__DIR__ . '/SortCallNumber.php');
 
@@ -263,6 +264,32 @@ foreach ($lc_pair_tests as $pair) {
     }
     $all_pass = $all_pass && $passed;
 }
+
+echo "=== Test 9: Bare single-letter LC class (no class number) ===\n";
+// Bug: 'K .C845 R 1970 v. 1' failed the NormalizeLC regex (\d+ required at least
+// one digit after the letter class). These books got the unparsable sentinel ' '
+// and sorted before JC, KF, etc. — completely wrong.
+// Fix: change \d+ to \d* so the class number is optional.
+$bare_class_tests = [
+    'JC585 .P32 1991 v.1',     // JC section (J < K alphabetically)
+    'JC599.U5 A45 2019',
+    'K .C845 R 1970 v. 1',    // K section, no class number — sorts after JC, before KF
+    'K .C845 R 1970 v. 2',    // same cutter, later volume
+    'KF4749 .M38 2015',        // KF section (after K)
+];
+$shuffled_bc = $bare_class_tests;
+shuffle($shuffled_bc);
+usort($shuffled_bc, 'SortLC');
+echo "Result:\n";
+foreach ($shuffled_bc as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
+$pass9 = ($shuffled_bc === $bare_class_tests);
+echo ($pass9 ? "✅ PASS" : "❌ FAIL") . "\n";
+echo "Normalized keys:\n";
+foreach ($bare_class_tests as $cn)
+    echo "  " . str_pad($cn, 26) . " => " . NormalizeLC($cn) . "\n";
+echo "\n";
+$all_pass = $all_pass && $pass9;
 
 echo "\n========================================\n";
 echo ($all_pass ? "✅ ALL TESTS PASSED!" : "❌ SOME TESTS FAILED") . "\n";
