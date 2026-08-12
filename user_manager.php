@@ -67,6 +67,26 @@ function getAllowedUsersMap() {
         }
     }
 
+    // Check optional EXTRA_ALLOWED_USERS / ALLOWED_USERS env vars (comma-separated list)
+    $envUsersStr = getenv('EXTRA_ALLOWED_USERS') ?: getenv('ALLOWED_USERS');
+    if (!empty($envUsersStr)) {
+        $envList = explode(',', $envUsersStr);
+        foreach ($envList as $entry) {
+            $entry = strtolower(trim($entry));
+            if (empty($entry)) continue;
+            $parts = explode(':', $entry);
+            $identifier = trim($parts[0]);
+            $role = (isset($parts[1]) && trim($parts[1]) === 'admin') ? 'admin' : 'user';
+            if (!empty($identifier) && !in_array($identifier, $removed, true)) {
+                $merged[$identifier] = [
+                    'identifier' => $identifier,
+                    'role' => $role,
+                    'source' => 'env'
+                ];
+            }
+        }
+    }
+
     foreach ($added as $id => $info) {
         $idLower = strtolower($id);
         if (!in_array($idLower, $removed, true)) {

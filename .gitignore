@@ -6,4 +6,4 @@ cache/output/*.csv
 key.php
 keys/
 allowed_users.txt
-
+tests/fixtures/cache_history/

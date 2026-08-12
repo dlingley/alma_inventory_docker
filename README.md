@@ -41,6 +41,8 @@ For background on the original application, see the [Ex Libris Developer Blog po
 | `SAML_IDP_ENTITY_ID` | Identity Provider Entity ID | `https://idp.purdue.edu/entity` |
 | `SAML_IDP_SSO_URL` | Identity Provider SSO Login URL | `https://login.openathens.net/saml/2/sso/purdue.edu` |
 | `SAML_IDP_CERT_PATH` | Path to IdP X.509 Certificate | `/etc/saml/idp.crt` |
+| `EXTRA_ALLOWED_USERS` | Optional local development user overrides (comma-separated `user@purdue.edu:admin`) | `dlingley@purdue.edu:admin` |
+| `SAML_WANT_ASSERTIONS_SIGNED` | Toggle SAML assertion signature enforcement | `false` in local dev |
 | `ALLOWED_USERS_FILE` | Path to seed allowed users list | `/etc/saml/allowed_users.txt` |
 | `HTTP_PROXY` / `HTTPS_PROXY` | Egress proxy configuration for Alma API calls | `http://proxy.itap.purdue.edu:3128` |
 
@@ -58,9 +60,11 @@ For background on the original application, see the [Ex Libris Developer Blog po
    ```bash
    cp .env.example .env
    ```
-   Add your Alma Shelflist API key to `.env`:
+   Add your Alma Shelflist API key and optional local admin override to `.env`:
    ```env
    ALMA_SHELFLIST_API_KEY=your_actual_key_here
+   EXTRA_ALLOWED_USERS=dlingley@purdue.edu:admin
+   SAML_WANT_ASSERTIONS_SIGNED=false
    ```
 
 3. **Start the local Docker environment**:

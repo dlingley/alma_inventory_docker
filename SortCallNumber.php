@@ -68,6 +68,13 @@ function NormalizeLC($lc_call_no_orig)
         $the_trimmings = $cutter_2_letter . $the_trimmings;
         $cutter_2_letter = '';
     }
+    // Handle second cutter written with a leading dot (e.g. ".G359 2024")
+    // The dot is purely a visual separator in LC call numbers and must be stripped for correct sorting
+    if (!$cutter_2_letter && preg_match('/^\.([A-Z]+)(\d+)\s*(.*)$/i', ltrim($the_trimmings), $dm)) {
+        $cutter_2_letter = strtoupper($dm[1]);
+        $cutter_2_number = $dm[2];
+        $the_trimmings   = $dm[3];
+    }
     /* TESTING NEW SECTION TO HANDLE VOLUME & PART NUMBERS */
     foreach ($integer_markers as $mark) {
         if (preg_match("/(.*)($mark)(\d+)(.*)/", $the_trimmings, $m)) {

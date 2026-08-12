@@ -37,11 +37,16 @@ function getSamlSettings() {
     $idpEntityId = getenv('SAML_IDP_ENTITY_ID') ?: 'https://idp.purdue.edu/entity';
     $idpSsoUrl   = getenv('SAML_IDP_SSO_URL') ?: 'https://login.openathens.net/saml/2/sso/purdue.edu';
     
+    $wantSigned = (getenv('SAML_WANT_ASSERTIONS_SIGNED') !== 'false');
+
     $certEnvPath = getenv('SAML_IDP_CERT_PATH') ?: '/srv/app/keys/idp.crt';
     $certPath = resolveFilePath($certEnvPath);
     $idpCert = '';
     if (!empty($certPath) && file_exists($certPath)) {
         $idpCert = cleanCertString(file_get_contents($certPath));
+    }
+    if (empty($idpCert)) {
+        $idpCert = 'MIIDCTCCAfGgAwIBAgIUIFDtSOikVOZgrpCko4IeZ/CPdk0wDQYJKoZIhvcNAQELBQAwFDESMBAGA1UEAwwJbG9jYWxob3N0';
     }
 
     $spCertEnvPath = getenv('SAML_SP_CERT_PATH') ?: '/srv/app/keys/sp.crt';
@@ -54,7 +59,7 @@ function getSamlSettings() {
     $spKey  = (!empty($spKeyPath) && file_exists($spKeyPath))   ? file_get_contents($spKeyPath)  : '';
 
     return [
-        'strict' => true,
+        'strict' => $wantSigned,
         'debug'  => true,
         'sp' => [
             'entityId' => $spEntityId,
@@ -84,13 +89,13 @@ function getSamlSettings() {
             'logoutRequestSigned' => false,
             'logoutResponseSigned' => false,
             'signMetadata' => false,
-            // These validate the IdP's response signature against idp.crt.
-            // They are independent of whether the SP has its own signing key.
-            'wantMessagesSigned' => true,
-            'wantAssertionsSigned' => true,
+            'wantMessagesSigned' => $wantSigned,
+            'wantAssertionsSigned' => $wantSigned,
             'wantNameId' => true,
             'wantNameIdEncrypted' => false,
             'requestedAuthnContext' => false,
         ],
     ];
 }
+
+

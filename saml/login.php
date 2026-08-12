@@ -2,6 +2,8 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+unset($_SESSION['auth_status']);
+unset($_SESSION['denied_user']);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../saml_settings.php';

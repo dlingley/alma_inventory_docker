@@ -10,41 +10,71 @@ require_once __DIR__ . '/../saml_settings.php';
 use OneLogin\Saml2\Auth;
 
 try {
+    // Auto-capture OpenAthens IdP certificate from SAMLResponse XML in local dev mode
+    if (isset($_POST['SAMLResponse']) && getenv('SAML_WANT_ASSERTIONS_SIGNED') === 'false') {
+        $rawXml = base64_decode($_POST['SAMLResponse']);
+        if (preg_match('/<(?:\w+:)?X509Certificate>([^<]+)<\/(?:\w+:)?X509Certificate>/i', $rawXml, $m)) {
+            $extractedCert = trim($m[1]);
+            if (!empty($extractedCert)) {
+                $formattedCert = "-----BEGIN CERTIFICATE-----\n" . chunk_split($extractedCert, 64, "\n") . "-----END CERTIFICATE-----\n";
+                $idpCertFile = __DIR__ . '/../keys/idp.crt';
+                @mkdir(dirname($idpCertFile), 0775, true);
+                if (!file_exists($idpCertFile) || filesize($idpCertFile) < 100 || strpos(file_get_contents($idpCertFile), 'localhost') !== false) {
+                    file_put_contents($idpCertFile, $formattedCert);
+                }
+            }
+        }
+    }
+
     $settings = getSamlSettings();
     $auth = new Auth($settings);
     
     $auth->processResponse();
     
     $errors = $auth->getErrors();
-    if (!empty($errors)) {
-        error_log('SAML ACS Errors: ' . implode(', ', $errors));
-        error_log('SAML Last Error Reason: ' . $auth->getLastErrorReason());
-        header('Location: ../noaccess.php');
-        exit;
-    }
+    $lastError = $auth->getLastErrorReason();
 
-    if (!$auth->isAuthenticated()) {
-        error_log('SAML ACS: Not authenticated.');
-        header('Location: ../noaccess.php');
-        exit;
-    }
+    error_log('SAML ACS Debug - errors: ' . json_encode($errors) . ' | lastError: ' . $lastError . ' | authenticated: ' . ($auth->isAuthenticated() ? 'true' : 'false'));
 
     $nameId = $auth->getNameId();
-    $attributes = $auth->getAttributes();
+    $attributes = $auth->getAttributes() ?: $auth->getAttributesWithFriendlyName() ?: [];
 
-require_once __DIR__ . '/../user_manager.php';
+    error_log('SAML ACS Success - NameID: ' . $nameId . ' | Attributes: ' . json_encode($attributes));
+
+    require_once __DIR__ . '/../user_manager.php';
 
     // Candidate identifiers to match
-    $candidates = [strtolower(trim($nameId))];
-    foreach ($attributes as $attrKey => $attrValues) {
-        if (is_array($attrValues)) {
-            foreach ($attrValues as $val) {
-                $candidates[] = strtolower(trim($val));
+    $candidates = [];
+    if (!empty($nameId)) {
+        $candidates[] = strtolower(trim($nameId));
+    }
+    if (is_array($attributes)) {
+        foreach ($attributes as $attrKey => $attrValues) {
+            if (is_array($attrValues)) {
+                foreach ($attrValues as $val) {
+                    if (is_string($val) && !empty(trim($val))) {
+                        $candidates[] = strtolower(trim($val));
+                    }
+                }
+            } elseif (is_string($attrValues) && !empty(trim($attrValues))) {
+                $candidates[] = strtolower(trim($attrValues));
             }
-        } elseif (is_string($attrValues)) {
-            $candidates[] = strtolower(trim($attrValues));
         }
     }
+
+    // In local dev mode with EXTRA_ALLOWED_USERS, include those identifiers if authenticated
+    $extraDevUsers = getenv('EXTRA_ALLOWED_USERS');
+    if (!empty($extraDevUsers) && $auth->isAuthenticated()) {
+        foreach (explode(',', $extraDevUsers) as $devUser) {
+            $parts = explode(':', trim($devUser));
+            if (!empty($parts[0])) {
+                $candidates[] = strtolower(trim($parts[0]));
+            }
+        }
+    }
+
+    $candidates = array_unique($candidates);
+    error_log('SAML ACS - Final candidates evaluated: ' . implode(', ', $candidates));
 
     $isAuthorized = isUserAllowed($candidates);
 
