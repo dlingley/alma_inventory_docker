@@ -160,10 +160,10 @@ body {
 /* Results table */
 .table-card {
     background: var(--color-card); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
-    overflow: hidden; margin-bottom: 2rem;
+    overflow-x: auto; margin-bottom: 2rem;
 }
 .results-table {
-    width: 100%; border-collapse: collapse; font-size: 0.8125rem;
+    width: 100%; border-collapse: collapse; font-size: 0.8125rem; min-width: 700px;
 }
 .results-table thead th {
     background: #f8fafc; padding: 0.75rem 0.875rem; text-align: left;
