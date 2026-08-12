@@ -48,7 +48,11 @@ function NormalizeLC($lc_call_no_orig)
         $mark = str_replace(".", "\.", $mark);
         $lc_call_no = preg_replace("/$mark(\d+)/", "$mark$1;", $lc_call_no);
     } // end foreach int marker
-    // Remove any inital white space
+    // Protect spaces before standalone 4-digit years (e.g. "BP109 2010" has no cutter).
+    // Use a tilde sentinel instead of a dot so the year is NOT parsed as a class decimal.
+    // The tilde causes the regex to leave everything from it onward in $the_trimmings.
+    $lc_call_no = preg_replace('/(\d)\s+(\d{4}\b)/', '$1~$2', $lc_call_no);
+    // Remove any remaining whitespace
     $lc_call_no = preg_replace("/\s*/", "", $lc_call_no);
 
     if (preg_match("/^([A-Z]{1,3})\s*(\d+)\s*\.*(\d*)\s*\.*\s*([A-Z]*)(\d*)\s*([A-Z]*)(\d*)\s*(.*)$/", $lc_call_no, $m)) {
@@ -68,6 +72,9 @@ function NormalizeLC($lc_call_no_orig)
         $the_trimmings = $cutter_2_letter . $the_trimmings;
         $cutter_2_letter = '';
     }
+    // Strip the tilde sentinel from the year-only case (e.g. "BP109~2010" ends up in the_trimmings)
+    // This ensures the year sorts as a plain suffix (after the class, before any cutter)
+    $the_trimmings = ltrim($the_trimmings, '~');
     // Handle second cutter written with a leading dot (e.g. ".G359 2024")
     // The dot is purely a visual separator in LC call numbers and must be stripped for correct sorting
     if (!$cutter_2_letter && preg_match('/^\.([A-Z]+)(\d+)\s*(.*)$/i', ltrim($the_trimmings), $dm)) {
