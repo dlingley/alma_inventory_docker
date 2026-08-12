@@ -36,6 +36,8 @@ For background on the original application, see the [Ex Libris Developer Blog po
 | Variable | Description | Default / Example |
 |---|---|---|
 | `ALMA_SHELFLIST_API_KEY` | Alma API key (read-only Bibs & Config access) | Secret in K8s / `.env` locally |
+| `ALMA_ANALYTICS_API_KEY` | Optional dedicated Alma Analytics API key override | Reuses `ALMA_SHELFLIST_API_KEY` by default |
+| `ALMA_ANALYTICS_REPORT_PATH` | Alma Analytics Report path for sort checking | `/shared/Purdue University/Reports/CallNumberSortCheck` |
 | `SAML_SP_ENTITY_ID` | Unified SAML Service Provider Entity ID | `https://inventory.lib.purdue.edu/saml/metadata` |
 | `SAML_SP_ACS_URL` | Assertion Consumer Service (ACS) URL | `https://dev-inventory.lib.purdue.edu/saml/acs` |
 | `SAML_IDP_ENTITY_ID` | Identity Provider Entity ID | `https://idp.purdue.edu/entity` |
@@ -144,3 +146,21 @@ docker compose exec app php test_sort.php
 ```
 
 If you modify `SortCallNumber.php`, always run `test_sort.php` to verify there are no regressions in volume subpart parsing (e.g. `t.2:bk.1`) or cutter sorting logic.
+
+### Alma Analytics Call Number Checker
+
+Compare local sorting engine outputs directly against Alma Analytics' server-side normalized call numbers:
+
+```bash
+# Run self-test unit verification
+php tests/check_analytics_sort.php
+
+# Check a list of barcodes
+php tests/check_analytics_sort.php --barcodes=32754069643793,32754002161580
+
+# Check an inventory report file
+php tests/check_analytics_sort.php --history=ShelfList_bcc_bcc_E185_E185_20250620.csv
+```
+
+Web interface available at `/analytics_checker.php`.
+

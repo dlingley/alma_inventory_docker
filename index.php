@@ -857,6 +857,7 @@ if (empty($libraries)) {
     <?php if (!empty($loggedInUser)): ?>
     <div class="user-bar">
         <span class="user-info">👤 <strong><?php echo htmlspecialchars($loggedInUser); ?></strong></span>
+        <a href="analytics_checker.php" class="history-btn" style="text-decoration:none;">🔍 Analytics Checker</a>
         <button id="open-history-modal-btn" class="history-btn">📜 History</button>
         <?php if (!empty($isSuperAdmin) && $isSuperAdmin === true): ?>
         <button id="open-cache-modal-btn" class="cache-btn">💾 Cache Manager</button>
