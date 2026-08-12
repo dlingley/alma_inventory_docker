@@ -10,6 +10,73 @@ $inputMode = $_POST['input_mode'] ?? 'paste';
 $callNumberType = $_POST['call_number_type'] ?? 'LC';
 $pastedBarcodes = $_POST['pasted_barcodes'] ?? '';
 $selectedHistory = $_POST['selected_history'] ?? '';
+$loadedFilename = null;
+
+$reportsDir = __DIR__ . '/cache/analytics_reports';
+if (!is_dir($reportsDir)) {
+    mkdir($reportsDir, 0755, true);
+}
+
+if (isset($_GET['action'])) {
+    if ($_GET['action'] === 'delete_report' && isset($_GET['file']) && !empty($isSuperAdmin)) {
+        $file = basename($_GET['file']);
+        if (file_exists("$reportsDir/$file")) {
+            unlink("$reportsDir/$file");
+        }
+        header("Location: analytics_checker.php");
+        exit;
+    }
+    if ($_GET['action'] === 'download_csv' && isset($_GET['file'])) {
+        $file = basename($_GET['file']);
+        if (file_exists("$reportsDir/$file")) {
+            $data = json_decode(file_get_contents("$reportsDir/$file"), true);
+            if ($data && isset($data['local_sorted'], $data['alma_sorted'])) {
+                header('Content-Type: text/csv');
+                header('Content-Disposition: attachment; filename="comparison_' . $file . '.csv"');
+                $out = fopen('php://output', 'w');
+                fputcsv($out, ['Rank', 'Barcode', 'Call Number', 'Local Norm Key', 'Alma Norm Key', 'Match Status']);
+                foreach ($data['local_sorted'] as $idx => $item) {
+                    $rank = $idx + 1;
+                    $bc = $item['barcode'];
+                    $match = false;
+                    for ($offset = -1; $offset <= 1; $offset++) {
+                        $checkIdx = $idx + $offset;
+                        if (isset($data['alma_sorted'][$checkIdx]) && $data['alma_sorted'][$checkIdx]['barcode'] === $bc) {
+                            $match = true;
+                            break;
+                        }
+                    }
+                    fputcsv($out, [
+                        $rank,
+                        $bc,
+                        $item['call_number'] ?? '',
+                        $item['local_norm_key'] ?? '',
+                        $item['alma_norm_key'] ?? '[Not Returned]',
+                        $match ? 'Match' : 'Mismatch'
+                    ]);
+                }
+                fclose($out);
+                exit;
+            }
+        }
+    }
+}
+
+if (isset($_GET['load_report'])) {
+    $file = basename($_GET['load_report']);
+    if (file_exists("$reportsDir/$file")) {
+        $loadedData = json_decode(file_get_contents("$reportsDir/$file"), true);
+        if ($loadedData) {
+            $report = $loadedData;
+            $callNumberType = $loadedData['call_number_type'] ?? 'LC';
+            $loadedFilename = $file;
+        } else {
+            $error = "Could not parse saved report.";
+        }
+    } else {
+        $error = "Saved report not found.";
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $items = [];
@@ -96,6 +163,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             });
 
+            if ($report !== null) {
+                $sourceDesc = 'Pasted barcodes';
+                if ($inputMode === 'upload' && !empty($_FILES['upload_file']['name'])) {
+                    $sourceDesc = 'Upload: ' . basename($_FILES['upload_file']['name']);
+                } elseif ($inputMode === 'history' && !empty($selectedHistory)) {
+                    $sourceDesc = 'History: ' . basename($selectedHistory);
+                }
+                $now = time();
+                $filename = sprintf("analytics_%s_%d_%d.json", $callNumberType, $now, $report['total_items']);
+                $reportToSave = array_merge($report, [
+                    'timestamp' => date('c', $now),
+                    'formatted_date' => date('Y-m-d H:i:s', $now),
+                    'user' => $loggedInUser ?? 'Unknown',
+                    'call_number_type' => $callNumberType,
+                    'discrepancy_count' => is_array($report['discrepancies']) ? count($report['discrepancies']) : 0,
+                    'source' => $sourceDesc
+                ]);
+                file_put_contents("$reportsDir/$filename", json_encode($reportToSave));
+                $loadedFilename = $filename;
+            }
+
             if ($progressId) {
                 file_put_contents('/tmp/progress_' . $progressId . '.json', json_encode(['percentage' => 100, 'job' => 'complete']));
             }
@@ -123,6 +211,21 @@ foreach ($dirsToScan as $d) {
     }
 }
 sort($historyOptions);
+
+$savedReports = [];
+if (is_dir($reportsDir)) {
+    foreach (glob($reportsDir . '/*.json') as $file) {
+        $data = json_decode(file_get_contents($file), true);
+        if ($data) {
+            $data['filename'] = basename($file);
+            $savedReports[] = $data;
+        }
+    }
+}
+usort($savedReports, function($a, $b) {
+    return strtotime($b['timestamp'] ?? '0') <=> strtotime($a['timestamp'] ?? '0');
+});
+$savedReports = array_slice($savedReports, 0, 50);
 
 function parseAnalyticsCsvFile(string $filePath): array
 {
@@ -302,6 +405,52 @@ function parseAnalyticsCsvFile(string $filePath): array
             </form>
         </div>
 
+        <!-- SAVED REPORTS SECTION -->
+        <div class="card">
+            <div class="card-title">Saved Reports</div>
+            <?php if (empty($savedReports)): ?>
+                <p style="font-size: 0.9rem; color: var(--color-text-muted);">No saved reports yet.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table style="font-size: 0.8rem;">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>User</th>
+                                <th>CN Type</th>
+                                <th>Match %</th>
+                                <th>Items</th>
+                                <th>Source</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($savedReports as $sr): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($sr['formatted_date'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($sr['user'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($sr['call_number_type'] ?? '') ?></td>
+                                    <td>
+                                        <span class="badge <?= ($sr['rank_match_percent'] ?? 0) >= 95 ? 'badge-success' : 'badge-warning' ?>">
+                                            <?= htmlspecialchars($sr['rank_match_percent'] ?? '') ?>%
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars($sr['total_items'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars($sr['source'] ?? '') ?></td>
+                                    <td>
+                                        <a href="?load_report=<?= urlencode($sr['filename']) ?>" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">View</a>
+                                        <?php if (!empty($isSuperAdmin)): ?>
+                                            <a href="?action=delete_report&file=<?= urlencode($sr['filename']) ?>" class="btn btn-primary" style="background-color: var(--color-danger); padding: 0.25rem 0.5rem; font-size: 0.75rem;" onclick="return confirm('Delete this report?');">Delete</a>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
         <?php if ($report !== null): ?>
             <div class="kpi-grid">
                 <div class="kpi-card">
@@ -336,9 +485,17 @@ function parseAnalyticsCsvFile(string $filePath): array
             <div class="card">
                 <div class="card-title">
                     <span>Side-by-Side Sort Comparison</span>
-                    <span class="badge <?= empty($report['discrepancies']) ? 'badge-success' : 'badge-warning' ?>">
-                        <?= empty($report['discrepancies']) ? '100% Sequence Match' : count($report['discrepancies']) . ' Discrepancies' ?>
-                    </span>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <?php if (isset($loadedFilename) && $_SERVER['REQUEST_METHOD'] === 'POST'): ?>
+                            <span class="badge badge-success">Saved ✓</span>
+                        <?php endif; ?>
+                        <?php if (isset($loadedFilename)): ?>
+                            <a href="?action=download_csv&file=<?= urlencode($loadedFilename) ?>" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; margin-right: 0.5rem;">Download CSV</a>
+                        <?php endif; ?>
+                        <span class="badge <?= empty($report['discrepancies']) ? 'badge-success' : 'badge-warning' ?>">
+                            <?= empty($report['discrepancies']) ? '100% Sequence Match' : count($report['discrepancies']) . ' Discrepancies' ?>
+                        </span>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
