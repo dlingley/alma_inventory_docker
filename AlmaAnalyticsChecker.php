@@ -16,17 +16,17 @@ class AlmaAnalyticsChecker
     private string $reportPath;
     private int $batchSize;
 
-    public function __construct(?string $apiKey = null, ?string $reportPath = null, int $batchSize = 50)
+    public function __construct(?string $apiKey = null, ?string $reportPath = null, int $batchSize = 25)
     {
         $this->apiKey     = $apiKey ?: (defined('ALMA_ANALYTICS_API_KEY') ? ALMA_ANALYTICS_API_KEY : ALMA_SHELFLIST_API_KEY);
         $this->reportPath = $reportPath ?: (defined('ALMA_ANALYTICS_REPORT_PATH') ? ALMA_ANALYTICS_REPORT_PATH : '/shared/Purdue University/Reports/CallNumberSortCheck');
-        $this->batchSize  = max(1, min($batchSize, 100));
+        $this->batchSize  = max(1, min($batchSize, 50));
     }
 
     /**
      * Build Siebel/OBIEE Analytics sawx XML filter expression for barcodes
      */
-    public function buildBarcodeFilterXml(array $barcodes): string
+    public function buildBarcodeFilterXml(array $barcodes, string $columnFormula = '"Physical Item Details"."Barcode"'): string
     {
         $barcodes = array_values(array_unique(array_filter(array_map('trim', $barcodes))));
         if (empty($barcodes)) {
@@ -40,7 +40,7 @@ class AlmaAnalyticsChecker
             'xmlns:sawx="com.siebel.analytics.web/expression/v1.1" ' .
             'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" ' .
             'xmlns:xsd="http://www.w3.org/2001/XMLSchema">' .
-            '<sawx:expr xsi:type="sawx:columnFormula">"Physical Item Details"."Barcode"</sawx:expr>';
+            '<sawx:expr xsi:type="sawx:columnFormula">' . $columnFormula . '</sawx:expr>';
 
         foreach ($barcodes as $bc) {
             $xml .= '<sawx:expr xsi:type="xsd:string">' . htmlspecialchars($bc, ENT_QUOTES | ENT_XML1, 'UTF-8') . '</sawx:expr>';
@@ -67,33 +67,56 @@ class AlmaAnalyticsChecker
         $results = [];
         $errors = [];
 
+        $formulasToTry = [
+            '"Physical Item Details"."Barcode"',
+            '"Physical Items"."Barcode"'
+        ];
+
         foreach ($chunks as $chunkIndex => $chunk) {
-            $filterXml = $this->buildBarcodeFilterXml($chunk);
-            $baseUrl   = 'https://api-na.hosted.exlibrisgroup.com/almaws/v1/analytics/reports';
-            $params    = [
-                'path'   => $this->reportPath,
-                'apikey' => $this->apiKey,
-                'filter' => $filterXml,
-                'limit'  => 1000
-            ];
+            $chunkParsed = null;
+            $chunkError = '';
 
-            $requestUrl = $baseUrl . '?' . http_build_query($params);
-            $response = $this->executeCurl($requestUrl);
+            foreach ($formulasToTry as $formula) {
+                $filterXml = $this->buildBarcodeFilterXml($chunk, $formula);
+                $baseUrl   = 'https://api-na.hosted.exlibrisgroup.com/almaws/v1/analytics/reports';
+                $params    = [
+                    'path'   => $this->reportPath,
+                    'apikey' => $this->apiKey,
+                    'filter' => $filterXml,
+                    'limit'  => 1000
+                ];
 
-            if (!$response['success']) {
-                $errors[] = "Batch " . ($chunkIndex + 1) . " API error: " . $response['error'];
-                continue;
+                $requestUrl = $baseUrl . '?' . http_build_query($params);
+                $response = $this->executeCurl($requestUrl);
+
+                if (!$response['success']) {
+                    $chunkError = "Batch " . ($chunkIndex + 1) . " API error: " . $response['error'];
+                    continue;
+                }
+
+                $parsed = $this->parseAnalyticsXml($response['body']);
+                if (!$parsed['success']) {
+                    $chunkError = "Batch " . ($chunkIndex + 1) . " XML parse error: " . $parsed['error'];
+                    continue;
+                }
+
+                if (!empty($parsed['rows'])) {
+                    $chunkParsed = $parsed['rows'];
+                    break;
+                }
             }
 
-            $parsed = $this->parseAnalyticsXml($response['body']);
-            if (!$parsed['success']) {
-                $errors[] = "Batch " . ($chunkIndex + 1) . " XML parse error: " . $parsed['error'];
-                continue;
-            }
-
-            foreach ($parsed['rows'] as $row) {
-                if (!empty($row['barcode'])) {
-                    $results[$row['barcode']] = $row;
+            if ($chunkParsed === null) {
+                if ($chunkError !== '') {
+                    $errors[] = $chunkError;
+                } else {
+                    $errors[] = "Batch " . ($chunkIndex + 1) . " returned 0 rows from Analytics (check barcode filter column in Alma report criteria).";
+                }
+            } else {
+                foreach ($chunkParsed as $row) {
+                    if (!empty($row['barcode'])) {
+                        $results[$row['barcode']] = $row;
+                    }
                 }
             }
         }
