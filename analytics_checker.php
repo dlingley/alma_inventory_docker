@@ -56,6 +56,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
+    // Auto-detect call number classification system from loaded item sample
+    if (!empty($items)) {
+        $deweyScore = 0;
+        $lcScore = 0;
+        foreach (array_slice($items, 0, 30) as $it) {
+            $cn = trim($it['call_number'] ?? '');
+            if ($cn !== '' && $cn !== 'UNKNOWN') {
+                if (preg_match('/^[0-9]{3}/', $cn)) {
+                    $deweyScore++;
+                } elseif (preg_match('/^[A-Za-z]{1,3}\s*[0-9]/', $cn)) {
+                    $lcScore++;
+                }
+            }
+        }
+        if ($deweyScore > $lcScore) {
+            $callNumberType = 'Dewey';
+        } elseif ($lcScore > $deweyScore) {
+            $callNumberType = 'LC';
+        }
+    }
+
     $customApiKey = trim($_POST['custom_api_key'] ?? '');
     $progressId   = trim($_POST['progress_id'] ?? '');
 
@@ -381,6 +402,15 @@ function parseAnalyticsCsvFile(string $filePath): array
             $(`button[onclick="switchTab('${mode}')"]`).addClass('active');
             $(`#tab-${mode}`).addClass('active');
         }
+
+        $('#selected_history').on('change', function() {
+            var val = $(this).val() || '';
+            if (/dewey/i.test(val) || /400B|7092|7817|8082|5195|6127/i.test(val)) {
+                $('input[name="call_number_type"][value="Dewey"]').prop('checked', true);
+            } else if (/lc|hss3lc|hss2lc/i.test(val)) {
+                $('input[name="call_number_type"][value="LC"]').prop('checked', true);
+            }
+        });
 
         $('#analytics_form').on('submit', function() {
             var pid = 'an_' + Date.now() + '_' + Math.floor(Math.random() * 10000);

@@ -12,6 +12,9 @@ require_once __DIR__ . '/SortCallNumber.php';
 
 class AlmaAnalyticsChecker
 {
+    private string $apiKey;
+    private string $reportPath;
+    private int $batchSize;
     private string $cacheDir;
     private int $cacheTtlSeconds = 2592000; // 30 days (30 * 86400)
 
