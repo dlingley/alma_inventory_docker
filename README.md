@@ -1,123 +1,142 @@
-# alma_inventory_docker
+# Alma Inventory Scanner (`alma_inventory_docker`)
 
-Alma Inventory API application that can be launched using Docker on Mac, Linux, or Windows.   
-For background on the application, see the [Ex Libris Developer Blog post](https://developers.exlibrisgroup.com/blog/Shelf-Inventory-using-Alma-APIs).
+Containerized PHP 8.2 web application for Alma inventory verification, call number shelf-order checking, and report generation with **SAML 2.0 Authentication**, **Superadmin User Management**, **Run History Tracking**, and **Persistent Cache Storage**.
 
----
-
-## Prerequisites
-
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) (v20.10+) or Docker Engine with the Compose plugin
-- Git
-- An Ex Libris Alma API key with **read-only** access to the **Bibs** and **Configuration** APIs
-
-> **Note:** This application runs PHP 8.2 inside the container, with full compatibility fixes in place. No local PHP installation is required.
+For background on the original application, see the [Ex Libris Developer Blog post](https://developers.exlibrisgroup.com/blog/Shelf-Inventory-using-Alma-APIs).
 
 ---
 
-## Setup
+## Key Features
 
-1. **Clone the repository**
+- 🔒 **SAML 2.0 Single Sign-On**: Unified OpenAthens / Shibboleth authentication with signed assertions, reverse-proxy TLS termination support, and Single Logout (SLO).
+- ⚙️ **Superadmin User Access Management**: Dynamic access control with `:admin` role tagging in `allowed_users.txt`. Superadmins can add, remove, and manage allowed users dynamically through an interactive UI modal without restarting pods.
+- 📜 **Run History & File Archiving**: Tracks every inventory run with date/time, user identifier, library, location, total barcodes, and issue counts. Archived input `.xlsx` files and output `.csv` reports are stored persistently in `/srv/app/cache/` for on-demand user downloads.
+- 💾 **Superadmin Cache Manager & 30-Day Auto-Rotation**: Barcode XML responses from Alma are cached locally for 30 days (`Monthly` TTL). Built-in Cache Manager allows Superadmins to monitor PVC disk usage and perform one-click pruning of expired entries (>30 days) or old report archives (>90 days).
+- ⚡ **Parallel Alma API Barcode Fetching**: Uses `curl_multi` batching to query Alma APIs in parallel while preserving exact shelf-scan sequence order.
+- 📚 **Dewey & LC Call Number Normalization**: Parses and normalizes complex Dewey Decimal and Library of Congress call numbers (including volume subparts like `t.2:bk.1` and cutter suffixes) for accurate shelf-order sorting.
 
-   ```bash
-   git clone https://github.com/dlingley/alma_inventory_docker.git
-   cd alma_inventory_docker
-   ```
+---
 
-2. **Configure your Alma API key**
+## Architecture & Storage
 
-   Copy the example environment file and add your key:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Open `.env` and replace `your_api_key_here` with your actual Alma Shelflist API key:
-
-   ```
-   ALMA_SHELFLIST_API_KEY=your_actual_key
-   ```
-
-   The key is picked up automatically by `key.php` at runtime.  
-   Alternatively, you can edit `key.php` directly and hard-code the key — but using `.env` keeps secrets out of source control.
-
-3. **Build and start the container**
-
-   ```bash
-   # Modern Docker CLI (v20.10+)
-   docker compose up
-
-   # Legacy standalone docker-compose
-   docker-compose up
-   ```
-
-4. **Open the application**
-
-   Navigate to [http://localhost:8080](http://localhost:8080) in your browser.  
-   You should see your list of Alma libraries in the drop-down list.
-
-5. **Customise `index.php`** to match your institution:
-   - Update the `id="itemType"` `<select>` options to match the material types enabled in Alma.
-   - Update the `id="policy"` `<select>` options to match the item policy types defined in Alma.
+```
+/srv/app/cache/ (Mounted to Kubernetes PVC: lib-inventory-cache-pvc)
+├── barcodes/            # Cached Alma API XML responses (30-day TTL auto-cleanup)
+├── output/              # Generated inventory report CSV files
+├── uploads/             # Archived input .xlsx spreadsheets for history downloads
+├── upload/              # Temporary staging area during active processing
+├── allowed_users.json   # Writable overlay for Superadmin user management edits
+└── run_history.json     # System-wide run history metadata log
+```
 
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `ALMA_SHELFLIST_API_KEY` | Alma API key with read-only Bibs & Configuration access |
-
-Values can be set in the `.env` file (recommended) or passed directly to Docker via the `environment:` key in `docker-compose.yml`.
-
----
-
-## Troubleshooting
-
-**Port 8080 is already in use**  
-Change the host port in `docker-compose.yml`:
-```yaml
-ports:
-  - 9090:80   # use any free port on the left
-```
-Then open `http://localhost:9090` instead.
-
-**The drop-down list is empty / API errors**  
-- Confirm your `ALMA_SHELFLIST_API_KEY` is correct and has read-only access to Bibs and Configuration.  
-- Check the container logs: `docker compose logs app`
-
-**Permission errors on the cache directory**  
-The `cache/` directory must be writable by the `www-data` user. The Dockerfile sets this automatically. If you see permission errors after a bind-mount change, run:
-```bash
-docker compose exec app chown -R www-data:www-data /srv/app/cache
-```
-
-**Changes to PHP files are not reflected**  
-The `docker-compose.yml` mounts the project directory into the container as a volume, so edits to PHP files take effect immediately without rebuilding. If you change the `Dockerfile` or add new dependencies, rebuild with:
-```bash
-docker compose up --build
-```
+| Variable | Description | Default / Example |
+|---|---|---|
+| `ALMA_SHELFLIST_API_KEY` | Alma API key (read-only Bibs & Config access) | Secret in K8s / `.env` locally |
+| `SAML_SP_ENTITY_ID` | Unified SAML Service Provider Entity ID | `https://inventory.lib.purdue.edu/saml/metadata` |
+| `SAML_SP_ACS_URL` | Assertion Consumer Service (ACS) URL | `https://dev-inventory.lib.purdue.edu/saml/acs` |
+| `SAML_IDP_ENTITY_ID` | Identity Provider Entity ID | `https://idp.purdue.edu/entity` |
+| `SAML_IDP_SSO_URL` | Identity Provider SSO Login URL | `https://login.openathens.net/saml/2/sso/purdue.edu` |
+| `SAML_IDP_CERT_PATH` | Path to IdP X.509 Certificate | `/etc/saml/idp.crt` |
+| `ALLOWED_USERS_FILE` | Path to seed allowed users list | `/etc/saml/allowed_users.txt` |
+| `HTTP_PROXY` / `HTTPS_PROXY` | Egress proxy configuration for Alma API calls | `http://proxy.itap.purdue.edu:3128` |
 
 ---
 
-## Development & Contributing
+## Local Development Setup
 
-### Running the tests
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/dlingley/alma_inventory_docker.git
+   cd alma_inventory_docker
+   ```
 
-A standalone regression test suite validates the complex Dewey and LC call number sorting logic:
+2. **Configure your environment**:
+   ```bash
+   cp .env.example .env
+   ```
+   Add your Alma Shelflist API key to `.env`:
+   ```env
+   ALMA_SHELFLIST_API_KEY=your_actual_key_here
+   ```
+
+3. **Start the local Docker environment**:
+   ```bash
+   docker compose up --build
+   ```
+
+4. **Access the application**:
+   - HTTP: [http://localhost:8080](http://localhost:8080)
+   - HTTPS (Local SSL): [https://localhost:8443](https://localhost:8443)
+
+---
+
+## Kubernetes & Deployment Workflow
+
+Deployment is fully automated via GitHub Actions (`.github/workflows/deploy.yml`):
+
+### NonProd Deployment (`dev-inventory.lib.purdue.edu`)
+Pushing code to the `master` branch triggers the automated build and rollout to the `lib-inventory-nonprod` namespace:
+```bash
+git checkout master
+git push origin master
+```
+
+### Production Deployment (`inventory.lib.purdue.edu`)
+Pushing code to the `production` branch triggers the automated build and rollout to the `lib-inventory-prod` namespace:
+```bash
+# Force-update production branch to match master and push to deploy
+git checkout -B production
+git rebase master
+git push origin production -f
+git checkout master
+```
+
+---
+
+## Superadmin Configuration
+
+Superadmins are designated by appending `:admin` to their email in `allowed_users.txt` or via the Kubernetes ConfigMap:
+
+```text
+dlingley@purdue.edu:admin
+flipscom@purdue.edu
+mtriehle@purdue.edu
+```
+
+### Updating Allowed Users ConfigMap in Kubernetes
+
+```bash
+cat <<'EOF' > /tmp/allowed_users.txt
+dlingley@purdue.edu:admin
+flipscom@purdue.edu
+mtriehle@purdue.edu
+EOF
+
+# NonProd:
+kubectl create configmap lib-inventory-allowed-users \
+  --namespace=lib-inventory-nonprod \
+  --from-file=allowed_users.txt=/tmp/allowed_users.txt \
+  --dry-run=client -o yaml | kubectl apply -f -
+
+# Prod:
+kubectl create configmap lib-inventory-allowed-users \
+  --namespace=lib-inventory-prod \
+  --from-file=allowed_users.txt=/tmp/allowed_users.txt \
+  --dry-run=client -o yaml | kubectl apply -f -
+```
+
+---
+
+## Testing & Validation
+
+A standalone regression test suite validates the Dewey and LC call number sorting algorithms:
 
 ```bash
 docker compose exec app php test_sort.php
 ```
 
-If you modify `SortCallNumber.php`, always rely on `test_sort.php` to ensure you haven't introduced regressions in volume subpart parsing (e.g. `t.2:bk.1`) or case-sensitive cutter logic.
-
-### Production deployment
-
-The Docker setup is intended for local development and testing. For production, deploy the PHP source files to your institution's web server environment (Apache/Nginx + PHP 8.2+) and set the `ALMA_SHELFLIST_API_KEY` environment variable through your server's configuration.
-
----
-
-## Docker configuration reference
-
-The Docker setup is based on the [PHP official image](https://hub.docker.com/_/php) with Apache.
+If you modify `SortCallNumber.php`, always run `test_sort.php` to verify there are no regressions in volume subpart parsing (e.g. `t.2:bk.1`) or cutter sorting logic.
