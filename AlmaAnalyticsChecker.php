@@ -362,7 +362,10 @@ class AlmaAnalyticsChecker
         usort($almaSorted, function ($a, $b) {
             $keyA = $a['alma_norm_key'] ?? $a['local_norm_key'];
             $keyB = $b['alma_norm_key'] ?? $b['local_norm_key'];
-            return strcmp($keyA, $keyB);
+            // Strip leading Alma classification scheme prefix digit (e.g. 0 for Dewey, 1 for LC) for sequence sorting
+            $kA = preg_replace('/^[0-9]/', '', $keyA);
+            $kB = preg_replace('/^[0-9]/', '', $keyB);
+            return strcmp($kA, $kB);
         });
 
         // Compute sequence rank matches
