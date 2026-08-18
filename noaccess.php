@@ -2,7 +2,15 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-$deniedUser = $_SESSION['denied_user'] ?? ($_SESSION['samlUser'] ?? '');
+require_once __DIR__ . '/user_manager.php';
+
+$deniedUser = $_SESSION['denied_user'] ?? '';
+if (empty($deniedUser)) {
+    $deniedUser = getDisplayUserFromSaml(
+        $_SESSION['samlUser'] ?? '',
+        $_SESSION['denied_attributes'] ?? ($_SESSION['samlUserAttributes'] ?? [])
+    );
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">

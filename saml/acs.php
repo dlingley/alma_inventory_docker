@@ -96,14 +96,20 @@ try {
         header('Location: ' . $redirectTo);
         exit;
     } else {
-        error_log('SAML Auth Authorization Failed. NameID: ' . $nameId . ' | Checked candidates: ' . implode(', ', array_unique($candidates)) . ' | Attributes: ' . json_encode($attributes));
+        $displayUser = getDisplayUserFromSaml($nameId, $attributes);
+        if (empty($displayUser) && !empty($nameId)) {
+            $displayUser = $nameId;
+        }
+        error_log('SAML Auth Authorization Failed. NameID: ' . $nameId . ' | DisplayUser: ' . $displayUser . ' | Checked candidates: ' . implode(', ', array_unique($candidates)) . ' | Attributes: ' . json_encode($attributes));
         $_SESSION['auth_status'] = false;
-        $_SESSION['denied_user'] = $nameId;
+        $_SESSION['denied_user'] = $displayUser;
+        $_SESSION['denied_attributes'] = $attributes;
         header('Location: ../noaccess.php');
         exit;
     }
 } catch (Exception $e) {
     error_log('SAML ACS Exception: ' . $e->getMessage());
+    $_SESSION['auth_status'] = false;
     header('Location: ../noaccess.php');
     exit;
 }

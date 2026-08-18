@@ -171,3 +171,47 @@ function resetUsersOverlay() {
     }
     return true;
 }
+
+/**
+ * Extracts a human-readable identifier (email, display name, or username)
+ * from SAML NameID and SAML attribute assertions.
+ */
+function getDisplayUserFromSaml($nameId = '', $attributes = []) {
+    $preferredKeys = [
+        'displayName', 'mail', 'email', 'userPrincipalName', 'eduPersonPrincipalName',
+        'cn', 'name', 'uid',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
+        'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',
+        'urn:oid:0.9.2342.19200300.100.1.3', // mail OID
+        'urn:oid:2.16.840.1.113730.3.1.241'  // displayName OID
+    ];
+
+    if (is_array($attributes) && !empty($attributes)) {
+        foreach ($preferredKeys as $key) {
+            if (!empty($attributes[$key])) {
+                $val = is_array($attributes[$key]) ? $attributes[$key][0] : $attributes[$key];
+                if (is_string($val) && !empty(trim($val)) && strlen(trim($val)) < 80) {
+                    return trim($val);
+                }
+            }
+        }
+        // Scan all attribute values for any valid email string if preferred keys didn't match
+        foreach ($attributes as $k => $v) {
+            $vals = is_array($v) ? $v : [$v];
+            foreach ($vals as $val) {
+                if (is_string($val) && strpos($val, '@') !== false && strlen(trim($val)) < 80) {
+                    return trim($val);
+                }
+            }
+        }
+    }
+
+    if (!empty($nameId)) {
+        $rawUser = trim($nameId);
+        if (strlen($rawUser) <= 50) {
+            return $rawUser;
+        }
+    }
+
+    return '';
+}
