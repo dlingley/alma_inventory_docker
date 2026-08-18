@@ -8,7 +8,7 @@ For background on the original application, see the [Ex Libris Developer Blog po
 
 ## Key Features
 
-- 🔒 **SAML 2.0 Single Sign-On**: Unified OpenAthens / Shibboleth authentication with signed assertions, reverse-proxy TLS termination support, and Single Logout (SLO).
+- 🔒 **SAML 2.0 Single Sign-On & Authorization**: Unified OpenAthens / Shibboleth authentication with attribute extraction (`emailAddress`, `mail`, `eduPersonPrincipalName`, etc.), direct-GET login redirection, whitelist authorization enforcement, and access-denied handling with retry and logout workflows.
 - ⚙️ **Superadmin User Access Management**: Dynamic access control with `:admin` role tagging in `allowed_users.txt`. Superadmins can add, remove, and manage allowed users dynamically through an interactive UI modal without restarting pods.
 - 📜 **Run History & File Archiving**: Tracks every inventory run with date/time, user identifier, library, location, total barcodes, and issue counts. Archived input `.xlsx` files and output `.csv` reports are stored persistently in `/srv/app/cache/` for on-demand user downloads.
 - 💾 **Superadmin Cache Manager & 30-Day Auto-Rotation**: Barcode XML responses from Alma are cached locally for 30 days (`Monthly` TTL). Built-in Cache Manager allows Superadmins to monitor PVC disk usage and perform one-click pruning of expired entries (>30 days) or old report archives (>90 days).
