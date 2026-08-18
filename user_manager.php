@@ -178,7 +178,7 @@ function resetUsersOverlay() {
  */
 function getDisplayUserFromSaml($nameId = '', $attributes = []) {
     $preferredKeys = [
-        'displayName', 'mail', 'email', 'userPrincipalName', 'eduPersonPrincipalName',
+        'emailAddress', 'displayName', 'mail', 'email', 'userPrincipalName', 'eduPersonPrincipalName',
         'cn', 'name', 'uid',
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress',
         'http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name',

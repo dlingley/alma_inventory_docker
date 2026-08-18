@@ -10,6 +10,11 @@ require_once __DIR__ . '/../saml_settings.php';
 use OneLogin\Saml2\Auth;
 
 try {
+    // If accessed directly via GET or without SAMLResponse payload, redirect to login
+    if ($_SERVER['REQUEST_METHOD'] === 'GET' || empty($_POST['SAMLResponse'])) {
+        header('Location: /saml/login');
+        exit;
+    }
     // Auto-capture OpenAthens IdP certificate from SAMLResponse XML in local dev mode
     if (isset($_POST['SAMLResponse']) && getenv('SAML_WANT_ASSERTIONS_SIGNED') === 'false') {
         $rawXml = base64_decode($_POST['SAMLResponse']);

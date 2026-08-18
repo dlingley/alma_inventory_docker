@@ -11,12 +11,13 @@ if (empty($deniedUser)) {
         $_SESSION['denied_attributes'] ?? ($_SESSION['samlUserAttributes'] ?? [])
     );
 }
+$isLoggedOut = isset($_GET['logout']) && $_GET['logout'] == '1';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Access Denied - Alma Inventory</title>
+    <title><?php echo $isLoggedOut ? 'Logged Out' : 'Access Denied'; ?> - Alma Inventory</title>
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -40,33 +41,66 @@ if (empty($deniedUser)) {
             color: #dc3545;
             margin-top: 0;
         }
+        h2.logged-out {
+            color: #0d6efd;
+        }
         p {
             margin: 1rem 0;
             line-height: 1.5;
         }
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 1.25rem;
+        }
         .btn {
             display: inline-block;
-            margin-top: 1rem;
             padding: 0.6rem 1.2rem;
-            background-color: #0d6efd;
             color: white;
             text-decoration: none;
             border-radius: 4px;
             font-weight: 500;
         }
-        .btn:hover {
+        .btn-primary {
+            background-color: #0d6efd;
+        }
+        .btn-primary:hover {
             background-color: #0b5ed7;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5c636a;
+        }
+        .btn-success {
+            background-color: #198754;
+        }
+        .btn-success:hover {
+            background-color: #157347;
         }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>Access Denied</h2>
-        <?php if (!empty($deniedUser)): ?>
-            <p>Authenticated as: <strong><?php echo htmlspecialchars($deniedUser); ?></strong></p>
+        <?php if ($isLoggedOut): ?>
+            <h2 class="logged-out">Logged Out</h2>
+            <p>You have successfully logged out of Alma Inventory.</p>
+            <div class="btn-group">
+                <a href="/saml/login" class="btn btn-primary">Sign In</a>
+            </div>
+        <?php else: ?>
+            <h2>Access Denied</h2>
+            <?php if (!empty($deniedUser)): ?>
+                <p>Authenticated as: <strong><?php echo htmlspecialchars($deniedUser); ?></strong></p>
+            <?php endif; ?>
+            <p>You do not have access to this application. If you believe this is an error, please contact dlingley@purdue.edu.</p>
+            <div class="btn-group">
+                <a href="/saml/login" class="btn btn-success">Try Again</a>
+                <a href="/saml/logout" class="btn btn-secondary">Log Out</a>
+            </div>
         <?php endif; ?>
-        <p>You do not have access to this application. If you believe this is an error, please contact dlingley@purdue.edu.</p>
-        <a href="/saml/logout" class="btn">Log Out</a>
     </div>
 </body>
 </html>
