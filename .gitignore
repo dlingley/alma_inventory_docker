@@ -7,3 +7,6 @@ key.php
 keys/
 allowed_users.txt
 tests/fixtures/cache_history/
+.DS_Store
+graphify-out/
+cache/allowed_users.json

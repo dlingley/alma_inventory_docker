@@ -12,6 +12,7 @@
  *     3. Case-insensitive cutter work marks (Am15L before Am15p)
  *     4. Consistent cutter letter ordering (P69A before P69c)
  *     5. Comprehensive mixed sort
+ *    13. Dewey "nothing before something" cutter work marks (C936 before C936e)
  *   LC:
  *     6. Dot-prefixed second cutter (.G359) sorts by letter, not by ASCII dot
  *     7. Year-only call numbers (BP109 2010) sort before cuttered items at same class
@@ -19,6 +20,7 @@
  *     9. Bare single-letter LC classes (K .C845 R 1970) with no class number
  *    10. DVD/media-prefix call numbers are NOT parsed as bare LC classes
  *    11. Ordinal edition markers (1st, 2nd, 10th) between class number and cutter
+ *    12. Publication years with letter suffixes (1974b before 1975)
  */
 require_once(__DIR__ . '/SortCallNumber.php');
 
@@ -360,6 +362,80 @@ foreach ($pairwise11 as [$earlier, $later]) {
     $pass11 = $pass11 && $ok;
 }
 $all_pass = $all_pass && $pass11;
+
+echo "\n=== Test 12: Publication years with letter suffixes (e.g. 1974b before 1975) ===\n";
+// Bug report (Scans 696-700): 'SF613.H44 A283 1974b' was sorted after 'SF613.H44 A283 1975'
+// because \b in the year regex failed to match when followed by a letter suffix,
+// causing 1974 to be absorbed into the cutter digits as '2831974'.
+// Fix: allow optional letter suffix in year protection regex (\d{4}[A-Z]?\b).
+$year_suffix_tests = [
+    'SF613.E45 A3 2013',
+    'SF613.H44 A283 1974',
+    'SF613.H44 A283 1974a',
+    'SF613.H44 A283 1974b',
+    'SF613.H44 A283 1975',
+    'SF613.H44 A3 2015',
+    'SF613.I54 A3 2008',
+];
+$shuffled_ys = $year_suffix_tests;
+shuffle($shuffled_ys);
+usort($shuffled_ys, 'SortLC');
+echo "Result:\n";
+foreach ($shuffled_ys as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
+$pass12 = ($shuffled_ys === $year_suffix_tests);
+echo ($pass12 ? "✅ PASS" : "❌ FAIL") . "\n";
+echo "Normalized keys:\n";
+foreach ($year_suffix_tests as $cn)
+    echo "  " . str_pad($cn, 25) . " => " . NormalizeLC($cn) . "\n";
+echo "\n";
+$pairwise12 = [
+    ['SF613.H44 A283 1974b', 'SF613.H44 A283 1975'],
+    ['SF613.H44 A283 1974a', 'SF613.H44 A283 1974b'],
+    ['SF613.H44 A283 1974b', 'SF613.H44 A3 2015'],
+];
+foreach ($pairwise12 as [$earlier, $later]) {
+    $ok = SortLC($earlier, $later) < 0;
+    echo "  " . ($ok ? '✅' : '❌') . " '$earlier' < '$later'\n";
+    $pass12 = $pass12 && $ok;
+}
+$all_pass = $all_pass && $pass12;
+
+echo "\n=== Test 13: Dewey 'nothing before something' cutter work marks (C936 before C936e) ===\n";
+// Bug report (Scans 512-518): '338.1762130973 C936 1990' sorted after '338.1762130973 C936e 1990'
+// because '!' (ASCII 33) inserted before work mark sorts before '_' (ASCII 95) token delimiter.
+// Expected: C936 (nothing) < C936e ('e') < C936ex ('ex').
+$dewey_workmark_tests = [
+    '338.1761082 D991h 1978',
+    '338.1762 M879p 1987',
+    '338.1762130973 C936 1990',
+    '338.1762130973 C936e 1990',
+    '338.1762130973 C936ex 1990',
+    '338.176296 V592 1992',
+    '338.176400941 P621 1987',
+];
+$shuffled_dw = $dewey_workmark_tests;
+shuffle($shuffled_dw);
+usort($shuffled_dw, 'SortDewey');
+echo "Result:\n";
+foreach ($shuffled_dw as $i => $cn)
+    echo "  " . ($i + 1) . ". $cn\n";
+$pass13 = ($shuffled_dw === $dewey_workmark_tests);
+echo ($pass13 ? "✅ PASS" : "❌ FAIL") . "\n";
+echo "Normalized keys:\n";
+foreach ($dewey_workmark_tests as $cn)
+    echo "  " . str_pad($cn, 30) . " => " . normalizeDewey($cn) . "\n";
+echo "\n";
+$pairwise13 = [
+    ['338.1762130973 C936 1990',  '338.1762130973 C936e 1990'],
+    ['338.1762130973 C936e 1990', '338.1762130973 C936ex 1990'],
+];
+foreach ($pairwise13 as [$earlier, $later]) {
+    $ok = SortDewey($earlier, $later) < 0;
+    echo "  " . ($ok ? '✅' : '❌') . " '$earlier' < '$later'\n";
+    $pass13 = $pass13 && $ok;
+}
+$all_pass = $all_pass && $pass13;
 
 echo "\n========================================\n";
 echo ($all_pass ? "✅ ALL TESTS PASSED!" : "❌ SOME TESTS FAILED") . "\n";

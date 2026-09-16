@@ -225,6 +225,7 @@ include 'simplexlsx/simplexlsx.class.php';
 require_once(__DIR__ . "/login.php");
 require("SortCallNumber.php");
 require("almaBarcodeAPI.php");
+require_once(__DIR__ . "/ShelfOrderEvaluator.php");
 
 $shelflist = [];
 $output_array = [];
@@ -416,6 +417,12 @@ if (isset($_POST['submit'])) {
         //$sortedkey = $unsortedArray;
         //$sortedkey_success = uasort($sortedkey, "SortLCObject");
 
+        // Evaluate shelf order anomalies using Longest Non-Decreasing Subsequence (LNDS)
+        $shelfOrderEvals = [];
+        if ($_POST['onlyother'] == 'false') {
+            $shelfOrderEvals = ShelfOrderEvaluator::evaluate($sortednk, $unsortedArray);
+        }
+
         //Start loop of processing records and writing to output array
         $previousCN = 1;
         foreach ($sortednk as $key => $number) {
@@ -424,46 +431,11 @@ if (isset($_POST['submit'])) {
 
             //Don't flag order issues if only Other problems are requested
             if ($_POST['onlyother'] == 'false') {
-                //Next two if statements take care of undefined offset issue
-                if (!isset($sortednk[$key - 1]['scan_loc'])) {
-                    $sortednk[$key - 1]['scan_loc'] = null;
-                }
-                if (!isset($sortednk[$key + 1]['scan_loc'])) {
-                    $sortednk[$key + 1]['scan_loc'] = null;
-                }
-                $prevScan_loc = $sortednk[$key - 1]['scan_loc'] + 1;
-                $scan_loc = $sortednk[$key]['scan_loc'] + 1;
-                $nextScan_loc = $sortednk[$key + 1]['scan_loc'] + 1;
-                $nextdiff = $nextScan_loc - $scan_loc;
-                $prevdiff = $scan_loc - $prevScan_loc;
-
-                if ($prevdiff != 1 && $nextdiff != 1) {
-
-                    //Next two if statements take care of undefined offset issue
-                    if (!isset($unsortedArray[$sortednk[$key]['scan_loc'] - 1])) {
-                        $unsortedArray[$sortednk[$key]['scan_loc'] - 1] = null;
-                    }
-                    if (!isset($unsortedArray[$sortednk[$key]['scan_loc'] + 1])) {
-                        $unsortedArray[$sortednk[$key]['scan_loc'] + 1] = null;
-                    }
-
-                    $move = $prevScan_loc - $scan_loc;
-                    $prevScan_loc = 0;
-                    $scan_loc = 0;
-                    if ($move <0){
-                      $move = 'Move item back '.(abs($move) -1)  . ' spaces';
-                    }
-                    else {
-                      $move = 'Move item forward '.($move)  . ' spaces';
-                    }
-
-                    $prevCn = $unsortedArray[$sortednk[$key]['scan_loc'] - 1]['call_number'] ?? '';
-                    $nextCn = $unsortedArray[$sortednk[$key]['scan_loc'] + 1]['call_number'] ?? '';
-                    $orderProblem = "**OUT OF ORDER**<BR>Item Currently Between:<BR><em>" . htmlspecialchars((string)$prevCn) . "</em> & <em>" . htmlspecialchars((string)$nextCn) . "</em><BR>" . $move . "<BR>";
+                $eval = $shelfOrderEvals[$key] ?? null;
+                if ($eval !== null && $eval['is_ooo']) {
+                    $orderProblem = $eval['order_problem'];
                     $orderProblemCount += 1;
                     $problem = true;
-
-
                 } else {
                     $orderProblem = '';
                 }

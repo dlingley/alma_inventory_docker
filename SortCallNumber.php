@@ -48,10 +48,11 @@ function NormalizeLC($lc_call_no_orig)
         $mark = str_replace(".", "\.", $mark);
         $lc_call_no = preg_replace("/$mark(\d+)/", "$mark$1;", $lc_call_no);
     } // end foreach int marker
-    // Protect spaces before standalone 4-digit years (e.g. "BP109 2010" has no cutter).
+    // Protect spaces before standalone 4-digit years (e.g. "BP109 2010" has no cutter)
+    // or years with edition/work letters (e.g. "1974b").
     // Use a tilde sentinel instead of a dot so the year is NOT parsed as a class decimal.
     // The tilde causes the regex to leave everything from it onward in $the_trimmings.
-    $lc_call_no = preg_replace('/(\d)\s+(\d{4}\b)/', '$1~$2', $lc_call_no);
+    $lc_call_no = preg_replace('/(\d)\s+(\d{4}[A-Za-z]?\b)/i', '$1~$2', $lc_call_no);
     // Protect ordinal edition markers (1st, 2nd, 3rd, 10th, etc.) that appear between
     // the class number and the cutter (e.g. "UA31 10th .L4197" -> "UA31~10TH .L4197").
     // Without this, whitespace stripping merges them into the class number
@@ -194,8 +195,9 @@ function SortDeweyObject($right, $left)
 
 function normalizeDewey($callNum)
 {
-    //Insert ! when any letter comes after number (case-insensitive)
-    $init = preg_replace('/([0-9])(?=[a-zA-Z])/', '$1!', $callNum);
+    //Insert ~ when any letter comes after number (case-insensitive)
+    // Using ~ (ASCII 126) ensures "nothing before something" (e.g. C936 sorts before C936e because _ (ASCII 95) < ~ (ASCII 126))
+    $init = preg_replace('/([0-9])(?=[a-zA-Z])/', '$1~', $callNum);
     //make all characters lowercase... sort works better this way for dewey...
     $init = strtolower($init);
     //get rid of leading whitespace
@@ -252,7 +254,7 @@ function normalizeDewey($callNum)
     // separator following "n857" has a higher ASCII value than the digit "6".
     $token_count = count($tokens);
     for ($i = 0; $i < $token_count; $i++) {
-        if (preg_match('/^([a-z!]+)(\d+)(.*)$/', $tokens[$i], $m)) {
+        if (preg_match('/^([a-z~]+)(\d+)(.*)$/', $tokens[$i], $m)) {
             $tokens[$i] = $m[1] . str_pad($m[2], 15, "0", STR_PAD_RIGHT) . $m[3];
         }
     }

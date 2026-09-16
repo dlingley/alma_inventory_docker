@@ -166,6 +166,34 @@ class SortCallNumberTest extends TestCase
         $this->assertEquals(0, SortDewey('100 A100', '100 A100'));
     }
 
+    /**
+     * Dewey "nothing before something" cutter work mark ordering:
+     * User report (Scans 512-518):
+     *   338.1762130973 C936 1990 (no work mark)
+     *   338.1762130973 C936e 1990 (work mark 'e')
+     *   338.1762130973 C936ex 1990 (work mark 'ex')
+     * Because '!' (ASCII 33) is inserted before work marks, but '_' (ASCII 95) is
+     * used as token delimiter, C936 followed by year (imploded with '_') sorted AFTER
+     * C936!e and C936!ex.
+     * Expected: C936 (nothing) < C936e ('e') < C936ex ('ex').
+     */
+    public function testDeweyNothingBeforeSomethingWorkmarkOrder(): void
+    {
+        $items = [
+            ['call_number' => '338.1762130973 C936ex 1990'],
+            ['call_number' => '338.1762130973 C936 1990'],
+            ['call_number' => '338.1762130973 C936e 1990'],
+        ];
+        usort($items, 'SortDeweyObject');
+
+        $this->assertEquals('338.1762130973 C936 1990',   $items[0]['call_number']);
+        $this->assertEquals('338.1762130973 C936e 1990',  $items[1]['call_number']);
+        $this->assertEquals('338.1762130973 C936ex 1990', $items[2]['call_number']);
+
+        $this->assertLessThan(0, SortDewey('338.1762130973 C936 1990', '338.1762130973 C936e 1990'));
+        $this->assertLessThan(0, SortDewey('338.1762130973 C936e 1990', '338.1762130973 C936ex 1990'));
+    }
+
     // =========================================================================
     // LC (Library of Congress) Sorting Tests
     // =========================================================================
@@ -248,4 +276,32 @@ class SortCallNumberTest extends TestCase
         $this->assertGreaterThan(0, SortLC('PS200 .B2', 'PR100 .A1'));
         $this->assertEquals(0, SortLC('PR100 .A1', 'PR100 .A1'));
     }
+
+    /**
+     * LC publication year with letter suffix (e.g. 1974b):
+     * User report (Scan 696-700): SF613.H44 A283 1974b was sorted after SF613.H44 A283 1975
+     * because the \b in the year protection regex failed to match when followed by a letter,
+     * causing the second cutter to absorb 1974 as '2831974'.
+     * Expected: 1974 < 1974a < 1974b < 1975, and cutter A283 sorts before cutter A3.
+     */
+    public function testLCYearWithLetterSuffix(): void
+    {
+        $items = [
+            ['call_number' => 'SF613.H44 A3 2015'],
+            ['call_number' => 'SF613.H44 A283 1975'],
+            ['call_number' => 'SF613.H44 A283 1974b'],
+            ['call_number' => 'SF613.H44 A283 1974a'],
+            ['call_number' => 'SF613.H44 A283 1974'],
+            ['call_number' => 'SF613.E45 A3 2013'],
+        ];
+        usort($items, 'SortLCObject');
+
+        $this->assertEquals('SF613.E45 A3 2013',   $items[0]['call_number']);
+        $this->assertEquals('SF613.H44 A283 1974',  $items[1]['call_number']);
+        $this->assertEquals('SF613.H44 A283 1974a', $items[2]['call_number']);
+        $this->assertEquals('SF613.H44 A283 1974b', $items[3]['call_number']);
+        $this->assertEquals('SF613.H44 A283 1975',  $items[4]['call_number']);
+        $this->assertEquals('SF613.H44 A3 2015',    $items[5]['call_number']);
+    }
 }
+
