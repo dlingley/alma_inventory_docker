@@ -75,8 +75,6 @@ jobs:
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
-        with:
-          version: v1.33.13
 
       - name: Configure kubeconfig (prod)
         if: ${{ steps.env.outputs.environment == 'prod' }}
@@ -84,12 +82,9 @@ jobs:
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_PROD }}
         run: |
-          $kubeDir = Join-Path $env:RUNNER_TEMP ".kube"
-          $kubeconfigPath = Join-Path $kubeDir "config"
-          New-Item -ItemType Directory -Force -Path $kubeDir | Out-Null
-          [System.IO.File]::WriteAllText($kubeconfigPath, $env:KUBECONFIG_CONTENT)
-          icacls $kubeconfigPath /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
-          "KUBECONFIG=$kubeconfigPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          New-Item -ItemType Directory -Force -Path "$HOME\.kube" | Out-Null
+          [System.IO.File]::WriteAllText("$HOME\.kube\config", $env:KUBECONFIG_CONTENT)
+          icacls "$HOME\.kube\config" /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
 
       - name: Configure kubeconfig (nonprod)
         if: ${{ steps.env.outputs.environment == 'nonprod' }}
@@ -97,12 +92,9 @@ jobs:
         env:
           KUBECONFIG_CONTENT: ${{ secrets.KUBECONFIG_NONPROD }}
         run: |
-          $kubeDir = Join-Path $env:RUNNER_TEMP ".kube"
-          $kubeconfigPath = Join-Path $kubeDir "config"
-          New-Item -ItemType Directory -Force -Path $kubeDir | Out-Null
-          [System.IO.File]::WriteAllText($kubeconfigPath, $env:KUBECONFIG_CONTENT)
-          icacls $kubeconfigPath /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
-          "KUBECONFIG=$kubeconfigPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          New-Item -ItemType Directory -Force -Path "$HOME\.kube" | Out-Null
+          [System.IO.File]::WriteAllText("$HOME\.kube\config", $env:KUBECONFIG_CONTENT)
+          icacls "$HOME\.kube\config" /inheritance:r /grant:r "${env:USERDOMAIN}\${env:USERNAME}:F" | Out-Null
 
       - name: Update image tag in manifest
         shell: pwsh
@@ -115,7 +107,7 @@ jobs:
       - name: Apply Kubernetes manifests
         shell: pwsh
         run: |
-          kubectl apply --server-side --validate=false -f k8s/${{ steps.env.outputs.environment }}/
+          kubectl apply --server-side -f k8s/${{ steps.env.outputs.environment }}/
 
       - name: Wait for rollout to complete
         shell: pwsh
