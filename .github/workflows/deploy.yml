@@ -49,6 +49,7 @@ jobs:
         with:
           context: .
           file: .docker/Dockerfile
+          pull: true
           push: true
           tags: |
             ${{ steps.registry.outputs.registry }}/${{ env.IMAGE_NAME }}:latest
